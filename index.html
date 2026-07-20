@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JBC Analytical Petty Cash - Ultimate Free Edition</title>
-    <!-- Google API Scripts (Open Source & Free) -->
+    <title>JBC Analytical Petty Cash - Pro Cloud v45</title>
+    <!-- Google API Scripts -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
     <style>
@@ -19,11 +19,11 @@
         body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 10px; background-color: #f0f2f5; }
         .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.2); width: fit-content; min-width: 98%; margin: auto; }
 
-        /* UI Elements */
         .header { text-align: center; margin-bottom: 10px; }
-        .header h1 { margin: 0; font-size: 26px; }
+        .header h1 { margin: 0; font-size: 26px; font-weight: bold; }
         .editable-text { display: inline-block; padding: 2px 10px; border: 1px dashed #ccc; cursor: text; font-weight: bold; min-width: 250px; }
 
+        /* Cloud Sync Bar */
         .cloud-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; color: white; padding: 8px 15px; border-radius: 5px; margin-bottom: 10px; font-size: 13px; }
         .sync-btn { background: var(--accent); color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
@@ -33,8 +33,7 @@
         .dropdown-content { display: none; position: absolute; background-color: #fff; min-width: 100%; box-shadow: 0px 8px 16px rgba(0,0,0,0.2); z-index: 1000; border: 1px solid #ccc; max-height: 250px; overflow-y: auto; padding: 5px; border-radius: 4px; }
         .show { display: block; }
 
-        /* Table */
-        .table-wrapper { overflow-x: auto; width: 100%; }
+        .table-wrapper { width: 100%; margin-top: 10px; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; white-space: nowrap; border: 2px solid var(--border); }
         th, td { border: 1px solid var(--border); padding: 5px 8px; text-align: center; font-weight: bold; }
         
@@ -43,17 +42,21 @@
         .breakdown-head { background-color: var(--breakdown-color) !important; }
         .amt { text-align: right; min-width: 75px; }
 
-        /* Form */
         .input-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 5px; background: #e2e8f0; padding: 10px; border-radius: 5px; margin-top: 10px; }
         input, select, button { padding: 6px; font-size: 12px; border: 1px solid #999; border-radius: 4px; }
         .btn-save { background: #059669; color: white; border: none; cursor: pointer; font-weight: bold; }
         .btn-final { background: #f59e0b; color: black; border: none; cursor: pointer; font-weight: bold; padding: 10px 20px; }
 
-        .summary-box { margin-top: 15px; width: 450px; border-collapse: collapse; border: 2px solid #000; }
-        .summary-box th { background: #eee; border: 1px solid #000; padding: 5px; }
-        .summary-box td { border: 1px solid #000; padding: 6px 12px; font-weight: bold; }
+        .summary-box { margin-top: 15px; width: 450px; border-collapse: collapse; border: 1.5px solid #000; }
+        .summary-box th { background: #eee; border: 1px solid #000; }
+        .summary-box td { border: 1px solid #000; padding: 6px 12px; }
 
         .error-msg { color: #dc2626; background: #fee2e2; padding: 10px; border-radius: 4px; margin-top: 10px; display: none; border: 1.5px solid #dc2626; font-weight: bold; text-align: center; }
+
+        .cat-move-box { background: #eef2f3; padding: 10px; border-radius: 5px; border: 1px solid #ccc; display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+        .cat-chip { background: #fff; border: 1px solid #999; padding: 2px 8px; border-radius: 4px; display: flex; align-items: center; gap: 5px; font-size: 11px; }
+        .cat-chip b { cursor: pointer; color: blue; }
+        .del-btn-row { color: red; border: none; background: none; cursor: pointer; font-weight: bold; font-size: 14px; }
 
         @media print {
             @page { size: legal landscape; margin: 8mm; }
@@ -64,20 +67,16 @@
         }
 
         .btn-group { margin-top: 20px; display: flex; gap: 10px; }
-        .cat-move-box { background: #eef2f3; padding: 10px; border-radius: 5px; border: 1px solid #ccc; display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
-        .cat-chip { background: #fff; border: 1px solid #999; padding: 2px 8px; border-radius: 4px; display: flex; align-items: center; gap: 5px; font-size: 11px; }
-        .cat-chip b { cursor: pointer; color: blue; }
-        .del-btn { color: red; border: none; background: none; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Google Drive Sync Status -->
+    <!-- Cloud Bar -->
     <div class="cloud-bar no-print">
-        <div>☁️ ক্লাউড: <span id="cloudStatus">ডিসকানেক্টেড</span> | <span id="lastSync">সিঙ্ক নেই</span></div>
+        <div>☁️ ক্লাউড সিঙ্ক: <span id="cloudStatus">ডিসকানেক্টেড</span> | <span id="lastSync">সিঙ্ক নেই</span></div>
         <div>
-            <button id="authBtn" class="sync-btn" onclick="handleAuthClick()">Google Login (Free)</button>
+            <button id="authBtn" class="sync-btn" onclick="handleAuthClick()">Google Login</button>
             <button id="syncBtn" class="sync-btn" style="display:none; background:#16a34a" onclick="syncWithCloud()">Sync Now</button>
             <button id="undoBtn" class="sync-btn" style="display:none; background:#6366f1" onclick="undoRestore()">↺ Undo Restore</button>
         </div>
@@ -89,7 +88,6 @@
         <p>পেটিক্যাশ স্টেটমেন্ট: <span class="editable-text" id="dateRange" contenteditable="true" onblur="saveHeader()">০১/০৭/২০২৬ হতে ১৫/০৭/২০২৬ পর্যন্ত</span></p>
     </div>
 
-    <!-- Filters -->
     <div class="filter-section no-print">
         <div class="dropdown-container">
             <strong>মাস নির্বাচন:</strong>
@@ -107,7 +105,6 @@
         <div><strong>বছর:</strong><br><select id="filterYear" onchange="autoCalcPrevExpenses(); updateUI();"></select></div>
     </div>
 
-    <!-- Data Input -->
     <div class="no-print">
         <div class="cat-move-box" id="catOrderList"></div>
         <form id="ledgerForm" class="input-form">
@@ -129,7 +126,7 @@
         </form>
         <div style="margin-top:10px; display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <strong>অদ্যাবধি পূর্বের খরচ (Carry Forward):</strong>
+                <strong>অদ্যাবধি পূর্বের খরচ:</strong>
                 <input type="text" id="pb" placeholder="ব্যাংক" onchange="updateUI()" style="width:100px">
                 <input type="text" id="pc" placeholder="ক্যাশ" onchange="updateUI()" style="width:100px">
             </div>
@@ -147,7 +144,6 @@
         </table>
     </div>
 
-    <!-- Summary Footer (Requirement: Headers for Bank/Cash) -->
     <div class="footer-summary">
         <table class="summary-box">
             <thead>
@@ -173,17 +169,15 @@
     <div class="btn-group no-print">
         <button onclick="window.print()" style="background:#000; color:white; padding:10px 20px; cursor:pointer;">পিডিএফ ডাউনলোড (Legal)</button>
         <button onclick="exportExcel()" style="background:#16a34a; color:white; padding:10px 20px; cursor:pointer;">Excel ডাউনলোড</button>
-        <button onclick="backupDBLocal()" style="background:#2563eb; color:white; padding:10px 20px; cursor:pointer;">ব্যাকআপ ফাইল (JSON)</button>
-        <button onclick="document.getElementById('rf').click()" style="background:#64748b; color:white; padding:10px 20px; cursor:pointer;">রিস্টোর (Restore)</button>
-        <input type="file" id="rf" style="display:none" onchange="restoreDB(event)">
+        <button onclick="backupDBLocal()" style="background:#2563eb; color:white; padding:10px 20px; cursor:pointer;">ফাইল ব্যাকআপ (JSON)</button>
         <button onclick="if(confirm('সব ডাটা মুছে যাবে!')) {localStorage.clear(); location.reload();}" style="background:#ddd; border:none; padding:10px; cursor:pointer;">সব মুছুন</button>
     </div>
 </div>
 
 <script>
-    // --- Configuration (Free Tier Google API) ---
-    const CLIENT_ID = 'YOUR_CLIENT_ID'; 
-    const API_KEY = 'YOUR_API_KEY';
+    // --- আপনার দেওয়া গুগল সেটিংস ---
+    const CLIENT_ID = '646770638834-b9299kfg2ovcbblgk149arbs0kg976nc.apps.googleusercontent.com'; 
+    const API_KEY = 'AQ.Ab8RN6KzFXWY6bHpVB96eNTNjSJ06OHb6EEFMimda2wPjk3xyQ';
     const DISCOVERY_DOC = "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest";
     const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
@@ -195,127 +189,71 @@
     function formatDateToBn(dateStr) { const p = dateStr.split('-'); return `${numToBn(p[2]).replace('.০০','')}/${numToBn(p[1]).replace('.০০','')}/${numToBn(p[0]).replace('.০০','')}`; }
     function numToBn(n) { return String(parseFloat(n).toFixed(2)).replace(/\d/g, d => bnNums[d] || d); }
 
-    let entries = JSON.parse(localStorage.getItem('jbc_db_v44')) || [];
-    let masterCats = JSON.parse(localStorage.getItem('jbc_pay_v44')) || ["১ম বর্ষ কমিশন", "নবায়ন কমিশন", "বেতন উন্নয়ন", "উৎসব বোনাস", "উৎসাহ বোনাস", "লাঃ সাঃ অফিস", "মজুরি", "স্টেশনারী", "ইন্টারনেট বিল", "পত্রিকা বিল", "ক্যাশ ভাতা", "টেলিফোন বিল", "রাজস্ব স্ট্যাম্প", "ফটোকপি", "লাঞ্চ সাবসিডি", "ডাক খরচ", "মেডিকেল বিল", "বিবিধ"];
-    let savedDescs = JSON.parse(localStorage.getItem('jbc_descs_v44')) || [];
+    let entries = JSON.parse(localStorage.getItem('jbc_db_v45')) || [];
+    let masterCats = JSON.parse(localStorage.getItem('jbc_pay_v45')) || ["১ম বর্ষ কমিশন", "নবায়ন কমিশন", "বেতন উন্নয়ন", "উৎসব বোনাস", "উৎসাহ বোনাস", "লাঃ সাঃ অফিস", "মজুরি", "স্টেশনারী", "ইন্টারনেট বিল", "পত্রিকা বিল", "ক্যাশ ভাতা", "টেলিফোন বিল", "রাজস্ব স্ট্যাম্প", "ফটোকপি", "লাঞ্চ সাবসিডি", "ডাক খরচ", "মেডিকেল বিল", "বিবিধ"];
+    let periodCatsStore = JSON.parse(localStorage.getItem('jbc_period_cats_v45')) || {};
+    let savedDescs = JSON.parse(localStorage.getItem('jbc_descs_v45')) || [];
 
-    // --- Google Drive Logic ---
+    // --- Cloud Sync Logic ---
     let tokenClient;
     function gapiLoaded() { gapi.load('client', async () => { await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] }); checkCloudStatus(); }); }
     function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: '' }); }
-    function handleAuthClick() { tokenClient.callback = (resp) => { if (resp.error) return; localStorage.setItem('gdrive_tk', resp.access_token); syncWithCloud(); }; tokenClient.requestAccessToken({prompt: 'consent'}); }
     function checkCloudStatus() { if(localStorage.getItem('gdrive_tk')) { document.getElementById('cloudStatus').innerText="কানেক্টেড ✅"; document.getElementById('syncBtn').style.display="inline-block"; } }
+    function handleAuthClick() { tokenClient.callback = (resp) => { if (resp.error) return; localStorage.setItem('gdrive_tk', resp.access_token); syncWithCloud(); }; tokenClient.requestAccessToken({prompt: 'consent'}); }
 
     async function syncWithCloud() {
         try {
             const token = localStorage.getItem('gdrive_tk');
             if(!token) return;
             gapi.client.setToken({access_token: token});
-            const bundle = { sig: "JBC_FREE", data: { entries, masterCats, off: document.getElementById('offName').innerText } };
-            const fileMetadata = { 'name': `JBC_Backup_${new Date().toLocaleDateString()}.json`, 'parents': ['root'] };
+            const bundle = { sig: "JBC_FINAL", data: { entries, masterCats, periodCatsStore, off: document.getElementById('offName').innerText } };
+            const fileMetadata = { 'name': `JBC_Sync_${new Date().toLocaleDateString()}.json`, 'parents': ['root'] };
             const media = { mimeType: 'application/json', body: JSON.stringify(bundle) };
             await gapi.client.drive.files.create({ resource: fileMetadata, media: media, fields: 'id' });
             document.getElementById('lastSync').innerText = new Date().toLocaleTimeString('bn-BD');
-            alert("ক্লাউড ব্যাকআপ সফল!");
+            alert("গুগল ড্রাইভ সিঙ্ক সফল!");
         } catch(e) { alert("সিঙ্ক এরর! পুনরায় লগইন করুন।"); }
     }
 
-    // --- Core UI Logic ---
-    function toggleDropdown() { document.getElementById("monthDropdown").classList.toggle("show"); }
-    window.onclick = function(e) { if (!e.target.closest('.dropdown-container')) { var d = document.getElementsByClassName("dropdown-content"); for (var i=0; i<d.length; i++) if (d[i].classList.contains('show')) d[i].classList.remove('show'); } }
-
-    function renderMonthDropdown() {
-        const container = document.getElementById('monthDropdown');
-        const currentM = new Date().getMonth() + 1;
-        monthNames.forEach((name, index) => {
-            const mVal = index + 1;
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" class="month-check" value="${mVal}" ${mVal === currentM ? 'checked' : ''} onchange="updateSelectedText(); autoCalcPrevExpenses(); updateUI();"> ${name}`;
-            container.appendChild(label);
-        });
-        updateSelectedText();
-    }
-
-    function updateSelectedText() {
-        const checks = document.querySelectorAll('.month-check:checked');
-        document.getElementById('selectedMonthText').innerText = checks.length === 0 ? "মাস বেছে নিন" : (checks.length === 12 ? "সবগুলো মাস" : checks.length + " টি নির্বাচিত");
-    }
-
-    function autoCalcPrevExpenses() {
-        const selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => parseInt(cb.value));
-        const period = document.getElementById('filterPeriod').value;
-        const year = parseInt(document.getElementById('filterYear').value);
-        if (selM.length === 0) return;
-        let borderD = (period === "P2") ? new Date(year, Math.min(...selM)-1, 16) : new Date(year, Math.min(...selM)-1, 1);
-        let pb = 0, pc = 0;
-        entries.forEach(e => {
-            let ed = new Date(e.date);
-            if (e.type === 'payment' && ed < borderD && ed.getFullYear() === year) {
-                if (e.cat === "পেটিক্যাশ উত্তোলন") pb += e.amt;
-                else (e.mode === 'bank') ? pb += e.amt : pc += e.amt;
-            }
-        });
-        document.getElementById('pb').value = toBn(pb).replace(".০০","");
-        document.getElementById('pc').value = toBn(pc).replace(".০০","");
-    }
-
-    function refreshDropdowns() {
-        const type = document.getElementById('type').value;
-        const select = document.getElementById('catSelect');
-        let opts = (type === 'payment') ? `<option value="পেটিক্যাশ উত্তোলন">পেটিক্যাশ উত্তোলন</option>` + masterCats.map(c => `<option value="${c}">${c}</option>`).join('') : ["জের বি/এফ", "অফিস হতে প্রাপ্ত", "ব্যাংক হতে উত্তোলন"].map(c => `<option value="${c}">${c}</option>`).join('');
-        select.innerHTML = opts + `<option value="ADD_NEW" style="color:blue;">+ নতুন খাত</option>`;
-        document.getElementById('descList').innerHTML = Array.from(new Set([...savedDescs, ...masterCats])).map(d => `<option value="${d}">`).join('');
-    }
-
-    function handleDropdownAction() {
-        if (document.getElementById('catSelect').value === "ADD_NEW") {
-            const n = prompt("নতুন খাতের নাম:"); if (n) { masterCats.push(n.trim()); localStorage.setItem('jbc_pay_v44', JSON.stringify(masterCats)); refreshUI(); }
-        }
-    }
-
-    function saveHeader() {
-        localStorage.setItem('jbc_off_v44', document.getElementById('offName').innerText);
-        localStorage.setItem('jbc_ran_v44', document.getElementById('dateRange').innerText);
-        updateUI();
-    }
-
-    function refreshUI() { refreshDropdowns(); updateUI(); }
-
-    document.getElementById('ledgerForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const dateInput = document.getElementById('date').value.split('-');
-        const m = parseInt(dateInput[1]), d = parseInt(dateInput[2]);
-        const selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => parseInt(cb.value));
+    // --- Core Logic (Independent Categories) ---
+    function getPeriodKey() {
+        const selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => cb.value);
         const selP = document.getElementById('filterPeriod').value;
+        if (selM.length !== 1 || selP === "FULL") return null;
+        return `${document.getElementById('filterYear').value}-${selM[0]}-${selP}`;
+    }
 
-        if (!selM.includes(m) || (selP==="P1" && d>15) || (selP==="P2" && d<16)) { alert("ভুল তারিখ বা মাস!"); return; }
+    function getActivePayCats() {
+        const key = getPeriodKey();
+        if (!key) {
+            const used = new Set(entries.map(e => e.cat));
+            return Array.from(new Set([...masterCats, ...used])).filter(c => !["জের বি/এফ", "অফিস হতে প্রাপ্ত", "ব্যাংক হতে উত্তোলন", "পেটিক্যাশ উত্তোলন"].includes(c));
+        }
+        if (!periodCatsStore[key]) { periodCatsStore[key] = [...masterCats]; localStorage.setItem('jbc_period_cats_v45', JSON.stringify(periodCatsStore)); }
+        return periodCatsStore[key];
+    }
 
-        const dVal = document.getElementById('desc').value.trim();
-        entries.push({
-            id: Date.now(),
-            date: document.getElementById('date').value,
-            type: document.getElementById('type').value,
-            desc: dVal,
-            cat: document.getElementById('catSelect').value,
-            vou: document.getElementById('vou').value || '-',
-            chk: document.getElementById('chk').value || '-',
-            mode: document.getElementById('mode').value,
-            amt: toEn(document.getElementById('amtInp').value)
-        });
-        if(!savedDescs.includes(dVal)) savedDescs.push(dVal);
-        localStorage.setItem('jbc_db_v44', JSON.stringify(entries));
-        localStorage.setItem('jbc_descs_v44', JSON.stringify(savedDescs));
-        e.target.reset(); refreshUI();
-    });
+    function refreshUI() {
+        const key = getPeriodKey();
+        const toolBox = document.getElementById('catOrderList');
+        if (key) {
+            toolBox.style.display = "flex";
+            toolBox.innerHTML = '<strong>পিরিয়ড খাত:</strong> ' + periodCatsStore[key].map((c, i) => `
+                <span class="cat-chip"><b onclick="moveCat(${i},-1)">←</b>${c}<b onclick="renameCat(${i})">✎</b><b onclick="moveCat(${i},1)">→</b></span>
+            `).join('');
+        } else toolBox.style.display = "none";
+        refreshDropdowns(); updateUI();
+    }
 
     function updateUI() {
         const h = document.getElementById('tHead'); const b = document.getElementById('tBody'); const f = document.getElementById('tFoot');
         const selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => parseInt(cb.value));
         const selY = parseInt(document.getElementById('filterYear').value);
         const selP = document.getElementById('filterPeriod').value;
+        const activeCats = getActivePayCats();
 
-        h.innerHTML = `<tr><th colspan="4" class="receipt-head">প্রাপ্তি</th><th colspan="6" class="payment-head">পরিশোধ</th><th colspan="${masterCats.length}" class="breakdown-head">পরিশোধের বিবরণ</th></tr>
-            <tr><th>তারিখ</th><th>প্রাপ্তির বিবরণ</th><th>ব্যাংক</th><th>ক্যাশ</th><th>তারিখ</th><th>পরিশোধের বিবরণ</th><th>ভাউ.</th><th>চেক</th><th>ব্যাংক</th><th>ক্যাশ</th>${masterCats.map(c => `<th>${c}</th>`).join('')}</tr>`;
+        h.innerHTML = `<tr><th colspan="4" class="receipt-head">প্রাপ্তি</th><th colspan="6" class="payment-head">পরিশোধ</th><th colspan="${activeCats.length}" class="breakdown-head">পরিশোধের বিবরণ</th></tr>
+            <tr><th>তারিখ</th><th>প্রাপ্তির বিবরণ</th><th>ব্যাংক</th><th>ক্যাশ</th><th>তারিখ</th><th>পরিশোধের বিবরণ</th><th>ভাউ.</th><th>চেক</th><th>ব্যাংক</th><th>ক্যাশ</th>${activeCats.map(c => `<th>${c}</th>`).join('')}</tr>`;
 
         let filtered = entries.filter(e => {
             const dp = e.date.split('-');
@@ -325,7 +263,6 @@
             return mMatch && yMatch && pMatch;
         });
 
-        // Feature 3: Merge Rows with same Voucher & Cheque
         let pMap = {}; let pProcessed = [];
         filtered.filter(e => e.type==='payment').forEach(e => {
             let k = `${e.date}|${e.vou}|${e.chk}`;
@@ -342,77 +279,83 @@
             (e.mode === 'bank') ? rMap[k].ab += e.amt : rMap[k].ac += e.amt; rMap[k].ids.push(e.id);
         });
 
-        b.innerHTML = ''; let s = { rb:0, rc:0, pb:0, pc:0 }; let cs = new Array(masterCats.length).fill(0);
+        b.innerHTML = ''; let s = { rb:0, rc:0, pb:0, pc:0 }; let cs = new Array(activeCats.length).fill(0);
         let totalContra = 0; let maxLen = Math.max(rProcessed.length, pProcessed.length);
 
         for(let i=0; i<maxLen; i++) {
             let row = "<tr>"; let r = rProcessed[i], p = pProcessed[i];
             if(r) { row += `<td class="receipt-head">${formatDateToBn(r.date)}</td><td class="receipt-head">${r.desc}</td><td class="amt receipt-head">${r.ab>0?toBn(r.ab):''}</td><td class="amt receipt-head">${r.ac>0?toBn(r.ac):''}</td>`; s.rb += r.ab; s.rc += r.ac; }
-            else { row += `<td></td><td></td><td></td><td></td>`; }
+            else row += `<td></td><td></td><td></td><td></td>`;
             if(p) {
                 row += `<td class="payment-head">${formatDateToBn(p.date)}</td><td class="payment-head">${p.desc}</td><td class="payment-head">${p.vou}</td><td class="payment-head">${p.chk}</td><td class="amt payment-head">${p.bankTotal>0?toBn(p.bankTotal):''}</td><td class="amt payment-head">${p.cashTotal>0?toBn(p.cashTotal):''}</td>`;
                 s.pb += p.bankTotal; s.pc += p.cashTotal; totalContra += p.contra;
-                masterCats.forEach((c, idx) => { let val = p.breakdown[c] || 0; row += `<td class="breakdown-head">${val>0?toBn(val):''}</td>`; cs[idx] += val; });
-                row += `<td class="no-print"><button class="del-btn" onclick="del('${p.ids.join(',')}')">×</button></td>`;
-            } else { row += `<td></td><td></td><td></td><td></td><td></td><td></td>`; masterCats.forEach(() => row += `<td></td>`); }
+                activeCats.forEach((c, idx) => { let val = p.breakdown[c] || 0; row += `<td class="breakdown-head">${val>0?toBn(val):''}</td>`; cs[idx] += val; });
+                row += `<td class="no-print"><button class="del-btn-row" onclick="del('${p.ids.join(',')}')">×</button></td>`;
+            } else { row += `<td></td><td></td><td></td><td></td><td></td><td></td>`; activeCats.forEach(() => row += `<td></td>`); }
             b.innerHTML += row + "</tr>";
         }
-
+        
         f.innerHTML = `<tr style="background:#eee"><td></td><td>মোট:</td><td class="amt">${toBn(s.rb)}</td><td class="amt">${toBn(s.rc)}</td><td></td><td>মোট:</td><td></td><td></td><td class="amt">${toBn(s.pb)}</td><td class="amt">${toBn(s.pc)}</td>${cs.map(v => `<td class="amt">${v>0?toBn(v):''}</td>`).join('')}</tr>`;
 
-        // Feature 6: Accounting Equation Validation
-        const breakdownT = cs.reduce((a,b)=>a+b, 0);
-        const equation = (breakdownT + totalContra - s.pb);
-        const valWarn = document.getElementById('validationWarning');
-        if (Math.abs(equation - s.pc) > 0.01) { valWarn.innerText = `⚠️ হিসাব ভুল হয়েছে। গরমিল: ${toBn(Math.abs(equation - s.pc))} টাকা।`; valWarn.style.display = "block"; } else valWarn.style.display = "none";
+        // Validation & Summary
+        const equation = (cs.reduce((a,b)=>a+b, 0) + totalContra - s.pb);
+        document.getElementById('validationWarning').style.display = (Math.abs(equation - s.pc) > 0.01) ? "block" : "none";
+        document.getElementById('validationWarning').innerText = `⚠️ হিসাব ভুল হয়েছে! গরমিল: ${toBn(Math.abs(equation-s.pc))}`;
 
         document.getElementById('sumRB').innerText = toBn(s.rb); document.getElementById('sumRC').innerText = toBn(s.rc);
         document.getElementById('sumPB').innerText = toBn(s.pb); document.getElementById('sumPC').innerText = toBn(s.pc);
         document.getElementById('jerB').innerText = toBn(s.rb - s.pb); document.getElementById('jerC').innerText = toBn(s.rc - s.pc);
         
-        let rangeParts = document.getElementById('dateRange').innerText.match(/([\d০-৯]{1,2}[-/.\\][\d০-৯]{1,2}[-/.\\][\d০-৯]{2,4})/g);
-        let endD = rangeParts ? rangeParts[rangeParts.length-1] : "...";
-        document.getElementById('endDt1').innerText = endD; document.getElementById('endDt2').innerText = endD;
-        document.getElementById('pCash').innerText = toBn(s.pc); document.getElementById('pBank').innerText = toBn(s.pb);
-
         const pbV = toEn(document.getElementById('pb').value), pcV = toEn(document.getElementById('pc').value);
         document.getElementById('cumBText').innerText = `${toBn(pbV)} + ${toBn(s.pb)} = ${toBn(pbV + s.pb)}`;
         document.getElementById('cumCText').innerText = `${toBn(pcV)} + ${toBn(s.pc)} = ${toBn(pcV + s.pc)}`;
     }
 
+    // --- Helper Functions ---
+    function moveCat(idx, dir) { const key = getPeriodKey(); const list = periodCatsStore[key]; if (dir === -1 && idx > 0) [list[idx], list[idx-1]] = [list[idx-1], list[idx]]; else if (dir === 1 && idx < list.length-1) [list[idx], list[idx+1]] = [list[idx+1], list[idx]]; localStorage.setItem('jbc_period_cats_v45', JSON.stringify(periodCatsStore)); refreshUI(); }
+    function renameCat(idx) { const key = getPeriodKey(); let old = periodCatsStore[key][idx]; let n = prompt("নতুন নাম:", old); if (n && n.trim() !== "" && n !== old) { entries.forEach(e => { if(e.cat === old) e.cat = n.trim(); }); periodCatsStore[key][idx] = n.trim(); localStorage.setItem('jbc_period_cats_v45', JSON.stringify(periodCatsStore)); localStorage.setItem('jbc_db_v45', JSON.stringify(entries)); refreshUI(); } }
+    function del(ids) { if(confirm("মুছবেন?")) { let idArr = ids.split(',').map(Number); entries = entries.filter(e => !idArr.includes(e.id)); localStorage.setItem('jbc_db_v45', JSON.stringify(entries)); updateUI(); } }
+    function toggleDropdown() { document.getElementById("monthDropdown").classList.toggle("show"); }
+    function renderMonthDropdown() { const c = document.getElementById('monthDropdown'); const cur = new Date().getMonth()+1; monthNames.forEach((n, i) => { const v = i+1; const l = document.createElement('label'); l.innerHTML = `<input type="checkbox" class="month-check" value="${v}" ${v === cur ? 'checked' : ''} onchange="updateSelectedText(); autoCalcPrevExpenses(); refreshUI();"> ${n}`; c.appendChild(l); }); updateSelectedText(); }
+    function updateSelectedText() { const checks = document.querySelectorAll('.month-check:checked'); document.getElementById('selectedMonthText').innerText = checks.length === 0 ? "মাস বেছে নিন" : (checks.length === 12 ? "সবগুলো মাস" : checks.length + " টি নির্বাচিত"); }
+    function autoCalcPrevExpenses() { const selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => parseInt(cb.value)); if (selM.length === 0) return; const p = document.getElementById('filterPeriod').value; const y = parseInt(document.getElementById('filterYear').value); let border = (p === "P2") ? new Date(y, Math.min(...selM)-1, 16) : new Date(y, Math.min(...selM)-1, 1); let pb = 0, pc = 0; entries.forEach(e => { let ed = new Date(e.date); if (e.type === 'payment' && ed < border && ed.getFullYear() === y) { if (e.cat === "পেটিক্যাশ উত্তোলন") pb += e.amt; else (e.mode === 'bank') ? pb += e.amt : pc += e.amt; } }); document.getElementById('pb').value = toBn(pb).replace(".০০",""); document.getElementById('pc').value = toBn(pc).replace(".০০",""); }
+    function refreshDropdowns() { const t = document.getElementById('type').value; const s = document.getElementById('catSelect'); const active = getActivePayCats(); let opts = (t === 'payment') ? `<option value="পেটিক্যাশ উত্তোলন">পেটিক্যাশ উত্তোলন</option>` + active.map(c => `<option value="${c}">${c}</option>`).join('') : ["জের বি/এফ", "অফিস হতে প্রাপ্ত", "ব্যাংক হতে উত্তোলন"].map(c => `<option value="${c}">${c}</option>`).join(''); s.innerHTML = opts + `<option value="ADD_NEW" style="color:blue;">+ নতুন খাত</option>`; }
+    function toggleInputs() { const isR = document.getElementById('type').value === 'receipt'; document.getElementById('vou').disabled = isR; document.getElementById('chk').disabled = isR; }
+    function handleDropdownAction() { if (document.getElementById('catSelect').value === "ADD_NEW") { const n = prompt("নতুন খাত:"); const key = getPeriodKey(); if (n && key) { periodCatsStore[key].push(n.trim()); localStorage.setItem('jbc_period_cats_v45', JSON.stringify(periodCatsStore)); refreshUI(); } } }
+    function saveHeader() { localStorage.setItem('jbc_off_v45', document.getElementById('offName').innerText); localStorage.setItem('jbc_ran_v45', document.getElementById('dateRange').innerText); updateUI(); }
+    function backupDBLocal() { const blob = new Blob([JSON.stringify({entries, masterCats, periodCatsStore})], {type: 'application/json'}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `JBC_Backup.json`; a.click(); }
+    function exportExcel() { const b = new Blob(['\ufeff', document.getElementById('mainTable').outerHTML], { type: 'application/vnd.ms-excel' }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `JBC_Report.xls`; a.click(); }
+
     function finalizePeriod() {
-        const selM = Array.from(document.querySelectorAll('.month-check:checked'));
-        if (selM.length !== 1) { alert("একটি নির্দিষ্ট মাস সিলেক্ট করুন।"); return; }
+        const selM = Array.from(document.querySelectorAll('.month-check:checked')); if (selM.length !== 1) { alert("একটি মাস সিলেক্ট করুন।"); return; }
         const jB = toEn(document.getElementById('jerB').innerText), jC = toEn(document.getElementById('jerC').innerText);
         const p = document.getElementById('filterPeriod').value, y = document.getElementById('filterYear').value, m = selM[0].value;
-        
         let nD = (p === "P1") ? `${y}-${String(m).padStart(2, '0')}-16` : (m == 12 ? `${parseInt(y)+1}-01-01` : `${y}-${String(parseInt(m)+1).padStart(2, '0')}-01`);
-        
-        // Feature 12 Snapshot
-        localStorage.setItem('jbc_safety_undo', JSON.stringify({entries, masterCats}));
-        document.getElementById('undoBtn').style.display = "inline-block";
-
         entries = entries.filter(e => !(e.date === nD && e.cat === "জের বি/এফ"));
         entries.push({ id: Date.now()+1, date: nD, type: 'receipt', desc: "জের বি/এফ", cat: "জের বি/এফ", mode: 'bank', amt: jB, vou: '-', chk: '-' });
         entries.push({ id: Date.now()+2, date: nD, type: 'receipt', desc: "জের বি/এফ", cat: "জের বি/এফ", mode: 'cash', amt: jC, vou: '-', chk: '-' });
-        localStorage.setItem('jbc_db_v44', JSON.stringify(entries));
+        localStorage.setItem('jbc_db_v45', JSON.stringify(entries));
         if(localStorage.getItem('gdrive_tk')) syncWithCloud();
         alert("ফাইনাল সাবমিট সম্পন্ন!"); updateUI();
     }
 
-    function undoRestore() { if(confirm("আগের অবস্থায় ফিরে যাবেন?")) { const s = JSON.parse(localStorage.getItem('jbc_safety_undo')); if(s) { entries=s.entries; masterCats=s.masterCats; localStorage.setItem('jbc_db_v44', JSON.stringify(entries)); location.reload(); } } }
-    function del(ids) { if(confirm("মুছবেন?")) { let idArr = ids.split(',').map(Number); entries = entries.filter(e => !idArr.includes(e.id)); localStorage.setItem('jbc_db_v44', JSON.stringify(entries)); updateUI(); } }
-    function backupDBLocal() { const blob = new Blob([JSON.stringify({entries, masterCats})], {type: 'application/json'}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `JBC_Backup_${new Date().toLocaleDateString()}.json`; a.click(); }
-    function restoreDB(ev) { const r = new FileReader(); r.onload = (e) => { const d = JSON.parse(e.target.result); if(d.sig!=="JBC_FREE" && !d.entries) {alert("ভুল ফাইল!"); return;} entries = d.entries || d.data.entries; masterCats = d.masterCats || d.data.masterCats; localStorage.setItem('jbc_db_v44', JSON.stringify(entries)); location.reload(); }; r.readAsText(ev.target.files[0]); }
-    function toggleInputs() { const isR = document.getElementById('type').value === 'receipt'; document.getElementById('vou').disabled = isR; document.getElementById('chk').disabled = isR; }
-    function exportExcel() { const b = new Blob(['\ufeff', document.getElementById('mainTable').outerHTML], { type: 'application/vnd.ms-excel' }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `JBC_Report.xls`; a.click(); }
+    document.getElementById('ledgerForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const dateInput = document.getElementById('date').value.split('-');
+        const m = parseInt(dateInput[1]), d = parseInt(dateInput[2]);
+        const selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => parseInt(cb.value));
+        const selP = document.getElementById('filterPeriod').value;
+        if (!selM.includes(m) || (selP==="P1" && d>15) || (selP==="P2" && d<16)) { alert("ভুল তারিখ বা মাস!"); return; }
+        entries.push({ id: Date.now(), date: document.getElementById('date').value, type: document.getElementById('type').value, desc: document.getElementById('desc').value, cat: document.getElementById('catSelect').value, vou: document.getElementById('vou').value || '-', chk: document.getElementById('chk').value || '-', mode: document.getElementById('mode').value, amt: toEn(document.getElementById('amtInp').value) });
+        localStorage.setItem('jbc_db_v45', JSON.stringify(entries)); e.target.reset(); refreshUI();
+    });
 
     window.onload = () => {
-        gapiLoaded(); gisLoaded();
-        renderMonthDropdown();
+        gapiLoaded(); gisLoaded(); renderMonthDropdown();
         const yrF = document.getElementById('filterYear'); const cY = new Date().getFullYear();
         for (let i = cY - 1; i <= cY + 2; i++) { let o = document.createElement('option'); o.value = i; o.innerText = i; if (i === cY) o.selected = true; yrF.appendChild(o); }
-        if(localStorage.getItem('jbc_off_v44')) document.getElementById('offName').innerText = localStorage.getItem('jbc_off_v44');
+        if(localStorage.getItem('jbc_off_v45')) document.getElementById('offName').innerText = localStorage.getItem('jbc_off_v45');
+        if(localStorage.getItem('jbc_ran_v45')) document.getElementById('dateRange').innerText = localStorage.getItem('jbc_ran_v45');
         autoCalcPrevExpenses(); refreshUI();
     };
 </script>
