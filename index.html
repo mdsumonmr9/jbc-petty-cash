@@ -27,6 +27,11 @@
         .cloud-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; color: white; padding: 8px 15px; border-radius: 5px; margin-bottom: 10px; font-size: 13px; }
         .sync-btn { background: var(--accent); color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
+        .dashboard { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
+        .card { background: #fff; border: 1px solid #ddd; padding: 10px 20px; border-radius: 5px; text-align: center; min-width: 150px; }
+        .card h4 { margin: 0; font-size: 12px; color: #555; }
+        .card p { margin: 5px 0 0; font-size: 18px; font-weight: bold; }
+
         .filter-section { background: #fff; border: 1px solid #3b82f6; padding: 10px; border-radius: 5px; margin-bottom: 10px; display: flex; gap: 15px; align-items: center; justify-content: center; }
         .dropdown-container { position: relative; width: 170px; }
         .dropdown-button { padding: 8px; border: 1px solid #999; border-radius: 4px; background: #fff; cursor: pointer; display: flex; justify-content: space-between; font-size: 13px; }
@@ -47,6 +52,9 @@
         .btn-save { background: #059669; color: white; border: none; cursor: pointer; font-weight: bold; }
         .btn-final { background: #f59e0b; color: black; border: none; cursor: pointer; font-weight: bold; padding: 10px 20px; }
 
+        .action-btns { display: flex; gap: 5px; justify-content: center; }
+        .edit-btn-row { color: #2563eb; cursor: pointer; border: none; background: none; font-size: 14px; }
+
         .summary-box { margin-top: 15px; width: 450px; border-collapse: collapse; border: 1.5px solid #000; }
         .summary-box th { background: #eee; border: 1px solid #000; }
         .summary-box td { border: 1px solid #000; padding: 6px 12px; }
@@ -60,7 +68,7 @@
 
         @media print {
             @page { size: legal landscape; margin: 8mm; }
-            .no-print, .btn-group, .action-btns, .filter-section, .btn-final, .cloud-bar, .cat-move-box { display: none !important; }
+            .no-print, .btn-group, .action-btns, .filter-section, .btn-final, .cloud-bar, .cat-move-box, .dashboard { display: none !important; }
             .table-wrapper { overflow: visible !important; }
             table { font-size: 10px !important; width: 100% !important; }
             th, td { border: 0.5pt solid #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -89,6 +97,13 @@
         <p>পেটিক্যাশ স্টেটমেন্ট: <span class="editable-text" id="dateRange" contenteditable="true" onblur="saveHeader()">০১/০৭/২০২৬ হতে ১৫/০৭/২০২৬ পর্যন্ত</span></p>
     </div>
 
+    <!-- ড্যাশবোর্ড -->
+    <div class="dashboard no-print">
+        <div class="card"><h4>ক্যাশ ব্যালেন্স</h4><p id="dashCash">০.০০</p></div>
+        <div class="card"><h4>ব্যাংক ব্যালেন্স</h4><p id="dashBank">০.০০</p></div>
+        <div class="card" style="border-color: #3b82f6;"><h4>সার্চ</h4><input type="text" id="searchBox" placeholder="খুঁজুন..." oninput="updateUI()" style="width:120px"></div>
+    </div>
+
     <!-- Filters -->
     <div class="filter-section no-print">
         <div class="dropdown-container">
@@ -97,7 +112,7 @@
             <div class="dropdown-content" id="monthDropdown"></div>
         </div>
         <div>
-            <strong>পিরিয়ড:</strong><br>
+            <strong>পিরিয়ড:</strong><br>
             <select id="filterPeriod" onchange="autoCalcPrevExpenses(); updateUI();">
                 <option value="P1">১ থেকে ১৫ তারিখ</option>
                 <option value="P2">১৬ থেকে শেষ তারিখ</option>
@@ -122,7 +137,9 @@
             <select id="mode"><option value="bank">Bank</option><option value="cash">Cash</option></select>
             <select id="catSelect" onchange="handleDropdownAction()"></select>
             <input type="text" id="amtInp" placeholder="টাকা" required>
+            <input type="hidden" id="editId" value="">
             <button type="submit" id="submitBtn" class="btn-save">এন্ট্রি করুন</button>
+            <button type="button" id="cancelBtn" style="display:none; background:#6c757d; color:white; border:none;" onclick="cancelEdit()">বাতিল</button>
         </form>
         <div style="margin-top:10px; display: flex; justify-content: space-between; align-items: center;">
             <div>
@@ -167,6 +184,8 @@
         <button onclick="window.print()" style="background:#000; color:white; padding:10px 20px; cursor:pointer;">পিডিএফ ডাউনলোড</button>
         <button onclick="exportExcel()" style="background:#16a34a; color:white; padding:10px 20px; cursor:pointer;">Excel ডাউনলোড</button>
         <button onclick="backupDBLocal()" style="background:#2563eb; color:white; padding:10px 20px; cursor:pointer;">ফাইল ব্যাকআপ (JSON)</button>
+        <button onclick="document.getElementById('rf').click()" style="background:#6c757d; color:white; padding:10px 20px; cursor:pointer;">রিস্টোর</button>
+        <input type="file" id="rf" style="display:none" onchange="restoreDB(event)">
         <button onclick="if(confirm('সব ডাটা মুছে যাবে!')) {localStorage.clear(); location.reload();}" style="background:#ddd; border:none; padding:10px; cursor:pointer;">সব মুছুন</button>
     </div>
 </div>
@@ -179,15 +198,15 @@
     const SCOPES = "https://www.googleapis.com/auth/drive.file";
 
     const bnNums = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
-    const monthNames = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
+    const monthNames = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
     
     function toBn(n) { if (n===""||isNaN(n)) return "০.০০"; return String(parseFloat(n).toFixed(2)).replace(/\d/g, d => bnNums[d] || d); }
-    function toEn(n) { return parseFloat(String(n).replace(/[০-৯]/g, d => ({"০":0,"১":1,"২":2,"৩":3,"৪":4,"৫":5,"৬":6,"৭":7,"৮":8,"৯":9}[d]))) || 0; }
+    function toEn(n) { if(typeof n === 'number') return n; return parseFloat(String(n).replace(/[০-৯]/g, d => ({"০":0,"১":1,"২":2,"৩":3,"৪":4,"৫":5,"৬":6,"৭":7,"৮":8,"৯":9}[d]))) || 0; }
     function formatDateToBn(dateStr) { const p = dateStr.split('-'); return `${numToBn(p[2]).replace('.০০','')}/${numToBn(p[1]).replace('.০০','')}/${numToBn(p[0]).replace('.০০','')}`; }
     function numToBn(n) { return String(parseFloat(n).toFixed(2)).replace(/\d/g, d => bnNums[d] || d); }
 
     let entries = JSON.parse(localStorage.getItem('jbc_db_v46')) || [];
-    let masterCats = JSON.parse(localStorage.getItem('jbc_pay_v46')) || ["১ম বর্ষ কমিশন", "নবায়ন কমিশন", "বেতন উন্নয়ন", "উৎসব বোনাস", "উৎসাহ বোনাস", "লাঃ সাঃ অফিস", "মজুরি", "স্টেশনারী", "ইন্টারনেট বিল", "পত্রিকা বিল", "ক্যাশ ভাতা", "টেলিফোন বিল", "রাজস্ব স্ট্যাম্প", "ফটোকপি", "লাঞ্চ সাবসিডি", "ডাক খরচ", "মেডিকেল বিল", "বিবিধ"];
+    let masterCats = JSON.parse(localStorage.getItem('jbc_pay_v46')) || ["১ম বর্ষ কমিশন", "নবায়ন কমিশন", "বেতন উন্নয়ন", "উৎসব বোনাস", "উৎসাহ বোনাস", "লাঃ সাঃ অফিস", "মজুরি", "স্টেশনারী", "ইন্টারনেট বিল", "পত্রিকা বিল", "ক্যাশ ভাতা", "টেলিফোন বিল", "রাজস্ব স্ট্যাম্প", "ফটোকপি", "লাঞ্চ সাবসিডি", "ডাক খরচ", "মেডিকেল বিল", "বিবিধ"];
     let periodCatsStore = JSON.parse(localStorage.getItem('jbc_period_cats_v46')) || {};
     let savedDescs = JSON.parse(localStorage.getItem('jbc_descs_v46')) || [];
 
@@ -214,8 +233,8 @@
 
     // --- Google Drive Logic ---
     let tokenClient;
-    function gapiLoaded() { if(API_KEY) gapi.load('client', async () => { await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] }); checkCloudStatus(); }); }
-    function gisLoaded() { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: '' }); }
+    function gapiLoaded() { try { if(API_KEY) gapi.load('client', async () => { await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] }); checkCloudStatus(); }); } catch(e) { console.warn('ক্লাউড (Google API) লোড হয়নি, অফলাইন মোডে চলছে:', e); } }
+    function gisLoaded() { try { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: '' }); } catch(e) { console.warn('ক্লাউড (Google Identity) লোড হয়নি, অফলাইন মোডে চলছে:', e); } }
     function checkCloudStatus() { if(localStorage.getItem('gdrive_tk')) { document.getElementById('cloudStatus').innerText="কানেক্টেড ✅"; document.getElementById('syncBtn').style.display="inline-block"; } }
     function handleAuthClick() { tokenClient.callback = (resp) => { if (resp.error) return; localStorage.setItem('gdrive_tk', resp.access_token); syncWithCloud(); }; tokenClient.requestAccessToken({prompt: 'consent'}); }
 
@@ -245,7 +264,7 @@
         const key = getPeriodKey();
         if (!key) {
             const used = new Set(entries.map(e => e.cat));
-            return Array.from(new Set([...masterCats, ...used])).filter(c => !["জের বি/এফ", "অফিস হতে প্রাপ্ত", "ব্যাংক হতে উত্তোলন", "পেটিক্যাশ উত্তোলন"].includes(c));
+            return Array.from(new Set([...masterCats, ...used])).filter(c => !["জের বি/এফ", "পূর্বের জের", "অফিস হতে প্রাপ্ত", "ব্যাংক হতে উত্তোলন", "পেটিক্যাশ উত্তোলন"].includes(c));
         }
         if (!periodCatsStore[key]) { periodCatsStore[key] = [...masterCats]; localStorage.setItem('jbc_period_cats_v46', JSON.stringify(periodCatsStore)); }
         return periodCatsStore[key];
@@ -257,6 +276,7 @@
         const selY = parseInt(document.getElementById('filterYear').value);
         const selP = document.getElementById('filterPeriod').value;
         const activeCats = getActivePayCats();
+        const searchTerm = (document.getElementById('searchBox').value || '').trim();
 
         h.innerHTML = `<tr><th colspan="4" class="receipt-head">প্রাপ্তি</th><th colspan="6" class="payment-head">পরিশোধ</th><th colspan="${activeCats.length}" class="breakdown-head">পরিশোধের বিবরণ</th></tr>
             <tr><th>তারিখ</th><th>প্রাপ্তির বিবরণ</th><th>ব্যাংক</th><th>ক্যাশ</th><th>তারিখ</th><th>পরিশোধের বিবরণ</th><th>ভাউ.</th><th>চেক</th><th>ব্যাংক</th><th>ক্যাশ</th>${activeCats.map(c => `<th>${c}</th>`).join('')}</tr>`;
@@ -265,18 +285,21 @@
             const dp = e.date.split('-');
             const mMatch = selM.includes(parseInt(dp[1])), yMatch = parseInt(dp[0]) === selY;
             let pMatch = (selP==='FULL') || (selP==='P1' && parseInt(dp[2])<=15) || (selP==='P2' && parseInt(dp[2])>15);
-            return mMatch && yMatch && pMatch;
+            let sMatch = !searchTerm || (e.desc && e.desc.includes(searchTerm)) || (e.cat && e.cat.includes(searchTerm)) || (e.vou && String(e.vou).includes(searchTerm)) || (e.chk && String(e.chk).includes(searchTerm));
+            return mMatch && yMatch && pMatch && sMatch;
         });
 
-        // Feature 3: Merge Logic (Voucher + Cheque)
-        let pMap = {}; let pProcessed = [];
+        // Feature 3: Merge Logic (Voucher + Cheque) — সাধারণ খাতভিত্তিক পরিশোধ একত্রে মার্জ হয়।
+        // পেটিক্যাশ উত্তোলন (Petty Cash Withdrawal) কখনও অন্য খাতের সাথে মিশবে না — প্রতিটি এন্ট্রি সবসময় নিজস্ব পৃথক লাইনে বসবে, তবে তারিখ ও ভাউচার নম্বর অনুযায়ী সঠিক ক্রমেই বসবে।
+        let pMap = {}; let paymentSeq = [];
         filtered.filter(e => e.type==='payment').forEach(e => {
+            if(e.cat === "পেটিক্যাশ উত্তোলন") { paymentSeq.push({ ...e, isPetty: true }); return; }
             let k = `${e.date}|${e.vou}|${e.chk}`;
-            if(!pMap[k]) { pMap[k] = { ...e, breakdown: {}, bankTotal: 0, cashTotal: 0, contra: 0, ids: [e.id] }; pProcessed.push(pMap[k]); }
+            if(!pMap[k]) { pMap[k] = { ...e, breakdown: {}, bankTotal: 0, cashTotal: 0, contra: 0, ids: [e.id], isPetty: false }; paymentSeq.push(pMap[k]); }
             else pMap[k].ids.push(e.id);
-            if(e.cat === "পেটিক্যাশ উত্তোলন") { pMap[k].contra += e.amt; pMap[k].bankTotal += e.amt; }
-            else { pMap[k].breakdown[e.cat] = (pMap[k].breakdown[e.cat] || 0) + e.amt; if(e.mode === 'bank') pMap[k].bankTotal += e.amt; else pMap[k].cashTotal += e.amt; }
+            pMap[k].breakdown[e.cat] = (pMap[k].breakdown[e.cat] || 0) + e.amt; if(e.mode === 'bank') pMap[k].bankTotal += e.amt; else pMap[k].cashTotal += e.amt;
         });
+        paymentSeq.sort((a,b) => new Date(a.date) - new Date(b.date) || (toEn(a.vou) - toEn(b.vou)) || String(a.vou).localeCompare(String(b.vou)));
 
         let rMap = {}; let rProcessed = [];
         filtered.filter(e => e.type==='receipt').sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(e => {
@@ -286,36 +309,62 @@
         });
 
         b.innerHTML = ''; let s = { rb:0, rc:0, pb:0, pc:0 }; let cs = new Array(activeCats.length).fill(0);
-        let totalContra = 0; let maxLen = Math.max(rProcessed.length, pProcessed.length);
+        let totalContra = 0; let rIdx = 0, pIdx = 0;
 
-        for(let i=0; i<maxLen; i++) {
-            let row = "<tr>"; let r = rProcessed[i], p = pProcessed[i];
-            if(r) { row += `<td class="receipt-head">${formatDateToBn(r.date)}</td><td class="receipt-head">${r.desc}</td><td class="amt receipt-head">${r.ab>0?toBn(r.ab):''}</td><td class="amt receipt-head">${r.ac>0?toBn(r.ac):''}</td>`; s.rb += r.ab; s.rc += r.ac; }
-            else row += `<td></td><td></td><td></td><td></td>`;
-            if(p) {
-                row += `<td class="payment-head">${formatDateToBn(p.date)}</td><td class="payment-head">${p.desc}</td><td class="payment-head">${p.vou}</td><td class="payment-head">${p.chk}</td><td class="amt payment-head">${p.bankTotal>0?toBn(p.bankTotal):''}</td><td class="amt payment-head">${p.cashTotal>0?toBn(p.cashTotal):''}</td>`;
-                s.pb += p.bankTotal; s.pc += p.cashTotal; totalContra += p.contra;
-                activeCats.forEach((c, idx) => { let val = p.breakdown[c] || 0; row += `<td class="breakdown-head">${val>0?toBn(val):''}</td>`; cs[idx] += val; });
-                row += `<td class="no-print"><button class="del-btn-row" onclick="del('${p.ids.join(',')}')">×</button></td>`;
-            } else { row += `<td></td><td></td><td></td><td></td><td></td><td></td>`; activeCats.forEach(() => row += `<td></td>`); }
+        while (pIdx < paymentSeq.length || rIdx < rProcessed.length) {
+            let p = paymentSeq[pIdx]; let r = null; let row = "<tr>";
+            if (p && p.isPetty) {
+                row += `<td class="receipt-head"></td><td class="receipt-head"></td><td class="amt receipt-head"></td><td class="amt receipt-head">${toBn(p.amt)}</td>`;
+                s.rc += p.amt;
+            } else {
+                r = rProcessed[rIdx];
+                if (r) { row += `<td class="receipt-head">${formatDateToBn(r.date)}</td><td class="receipt-head">${r.desc}</td><td class="amt receipt-head">${r.ab>0?toBn(r.ab):''}</td><td class="amt receipt-head">${r.ac>0?toBn(r.ac):''}</td>`; s.rb += r.ab; s.rc += r.ac; rIdx++; }
+                else row += `<td></td><td></td><td></td><td></td>`;
+            }
+            if (p) {
+                if (p.isPetty) {
+                    row += `<td class="payment-head">${formatDateToBn(p.date)}</td><td class="payment-head">${p.desc}</td><td class="payment-head">${p.vou}</td><td class="payment-head">${p.chk}</td><td class="amt payment-head">${toBn(p.amt)}</td><td class="amt payment-head"></td>`;
+                    s.pb += p.amt; totalContra += p.amt;
+                    activeCats.forEach(() => row += `<td class="breakdown-head"></td>`);
+                    row += `<td class="no-print"><div class="action-btns"><span class="edit-btn-row" onclick="editEntry(${p.id})">✎</span><button class="del-btn-row" onclick="del('${p.id}')">×</button></div></td>`;
+                } else {
+                    row += `<td class="payment-head">${formatDateToBn(p.date)}</td><td class="payment-head">${p.desc}</td><td class="payment-head">${p.vou}</td><td class="payment-head">${p.chk}</td><td class="amt payment-head">${p.bankTotal>0?toBn(p.bankTotal):''}</td><td class="amt payment-head">${p.cashTotal>0?toBn(p.cashTotal):''}</td>`;
+                    s.pb += p.bankTotal; s.pc += p.cashTotal; totalContra += p.contra;
+                    activeCats.forEach((c, idx) => { let val = p.breakdown[c] || 0; row += `<td class="breakdown-head">${val>0?toBn(val):''}</td>`; cs[idx] += val; });
+                    row += `<td class="no-print"><div class="action-btns"><span class="edit-btn-row" onclick="editEntry(${p.ids[0]})">✎</span><button class="del-btn-row" onclick="del('${p.ids.join(',')}')">×</button></div></td>`;
+                }
+                pIdx++;
+            } else {
+                row += `<td></td><td></td><td></td><td></td><td></td><td></td>`; activeCats.forEach(() => row += `<td></td>`); row += `<td class="no-print">${r ? `<div class="action-btns"><span class="edit-btn-row" onclick="editEntry(${r.ids[0]})">✎</span><button class="del-btn-row" onclick="del('${r.ids.join(',')}')">×</button></div>` : ''}</td>`;
+            }
             b.innerHTML += row + "</tr>";
         }
-        
+
         f.innerHTML = `<tr style="background:#eee"><td></td><td>মোট:</td><td class="amt">${toBn(s.rb)}</td><td class="amt">${toBn(s.rc)}</td><td></td><td>মোট:</td><td></td><td></td><td class="amt">${toBn(s.pb)}</td><td class="amt">${toBn(s.pc)}</td>${cs.map(v => `<td class="amt">${v>0?toBn(v):''}</td>`).join('')}</tr>`;
 
         // Validation (Feature 6)
         const breakdownT = cs.reduce((a,b)=>a+b, 0);
         const equation = (breakdownT + totalContra - s.pb);
         document.getElementById('validationWarning').style.display = (Math.abs(equation - s.pc) > 0.01) ? "block" : "none";
-        document.getElementById('validationWarning').innerText = `⚠️ হিসাব ভুল হয়েছে! গরমিল: ${toBn(Math.abs(equation-s.pc))}`;
+        document.getElementById('validationWarning').innerText = `⚠️ হিসাব ভুল হয়েছে! গরমিল: ${toBn(Math.abs(equation-s.pc))}`;
 
         document.getElementById('sumRB').innerText = toBn(s.rb); document.getElementById('sumRC').innerText = toBn(s.rc);
         document.getElementById('sumPB').innerText = toBn(s.pb); document.getElementById('sumPC').innerText = toBn(s.pc);
         document.getElementById('jerB').innerText = toBn(s.rb - s.pb); document.getElementById('jerC').innerText = toBn(s.rc - s.pc);
+        document.getElementById('pCash').innerText = toBn(s.pc); document.getElementById('pBank').innerText = toBn(s.pb);
         
         const pbV = toEn(document.getElementById('pb').value), pcV = toEn(document.getElementById('pc').value);
         document.getElementById('cumBText').innerText = `${toBn(pbV)} + ${toBn(s.pb)} = ${toBn(pbV + s.pb)}`;
         document.getElementById('cumCText').innerText = `${toBn(pcV)} + ${toBn(s.pc)} = ${toBn(pcV + s.pc)}`;
+
+        // ড্যাশবোর্ড - সর্বমোট ব্যাংক/ক্যাশ ব্যালেন্স (সব এন্ট্রি অনুযায়ী)
+        let gB = 0, gC = 0;
+        entries.forEach(e => {
+            if(e.type==='receipt') (e.mode==='bank')?gB+=e.amt:gC+=e.amt;
+            else { if(e.cat==='পেটিক্যাশ উত্তোলন') { gB-=e.amt; gC+=e.amt; } else (e.mode==='bank')?gB-=e.amt:gC-=e.amt; }
+        });
+        document.getElementById('dashBank').innerText = toBn(gB); document.getElementById('dashCash').innerText = toBn(gC);
+
         syncFooterDate();
     }
 
@@ -327,13 +376,14 @@
     function renderMonthDropdown() { const c = document.getElementById('monthDropdown'); const cur = new Date().getMonth()+1; monthNames.forEach((n, i) => { const v = i+1; const l = document.createElement('label'); l.innerHTML = `<input type="checkbox" class="month-check" value="${v}" ${v === cur ? 'checked' : ''} onchange="updateSelectedText(); autoCalcPrevExpenses(); refreshUI();"> ${n}`; c.appendChild(l); }); updateSelectedText(); }
     function updateSelectedText() { const checks = document.querySelectorAll('.month-check:checked'); document.getElementById('selectedMonthText').innerText = checks.length === 0 ? "মাস বেছে নিন" : (checks.length === 12 ? "সবগুলো মাস" : checks.length + " টি নির্বাচিত"); }
     function autoCalcPrevExpenses() { const selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => parseInt(cb.value)); if (selM.length === 0) return; const p = document.getElementById('filterPeriod').value; const y = parseInt(document.getElementById('filterYear').value); let border = (p === "P2") ? new Date(y, Math.min(...selM)-1, 16) : new Date(y, Math.min(...selM)-1, 1); let pb = 0, pc = 0; entries.forEach(e => { let ed = new Date(e.date); if (e.type === 'payment' && ed < border && ed.getFullYear() === y) { if (e.cat === "পেটিক্যাশ উত্তোলন") pb += e.amt; else (e.mode === 'bank') ? pb += e.amt : pc += e.amt; } }); document.getElementById('pb').value = toBn(pb).replace(".০০",""); document.getElementById('pc').value = toBn(pc).replace(".০০",""); }
-    function refreshDropdowns() { const t = document.getElementById('type').value; const s = document.getElementById('catSelect'); const active = getActivePayCats(); let opts = (t === 'payment') ? `<option value="পেটিক্যাশ উত্তোলন">পেটিক্যাশ উত্তোলন</option>` + active.map(c => `<option value="${c}">${c}</option>`).join('') : ["জের বি/এফ", "অফিস হতে প্রাপ্ত", "ব্যাংক হতে উত্তোলন"].map(c => `<option value="${c}">${c}</option>`).join(''); s.innerHTML = opts + `<option value="ADD_NEW" style="color:blue;">+ নতুন খাত</option>`; }
+    function refreshDropdowns() { const t = document.getElementById('type').value; const s = document.getElementById('catSelect'); const active = getActivePayCats(); let opts = (t === 'payment') ? `<option value="পেটিক্যাশ উত্তোলন">পেটিক্যাশ উত্তোলন</option>` + active.map(c => `<option value="${c}">${c}</option>`).join('') : ["পূর্বের জের", "জের বি/এফ", "অফিস হতে প্রাপ্ত", "ব্যাংক হতে উত্তোলন"].map(c => `<option value="${c}">${c}</option>`).join(''); s.innerHTML = opts + `<option value="ADD_NEW" style="color:blue;">+ নতুন খাত</option>`; }
     function toggleInputs() { const isR = document.getElementById('type').value === 'receipt'; document.getElementById('vou').disabled = isR; document.getElementById('chk').disabled = isR; }
     function handleDropdownAction() { if (document.getElementById('catSelect').value === "ADD_NEW") { const n = prompt("নতুন খাত:"); const key = getPeriodKey(); if (n && key) { periodCatsStore[key].push(n.trim()); localStorage.setItem('jbc_period_cats_v46', JSON.stringify(periodCatsStore)); refreshUI(); } } }
     function saveHeader() { localStorage.setItem('jbc_off_v46', document.getElementById('offName').innerText); localStorage.setItem('jbc_ran_v46', document.getElementById('dateRange').innerText); updateUI(); }
     function syncFooterDate() { let r = document.getElementById('dateRange').innerText.match(/([\d০-৯]{1,2}[-/.\\][\d০-৯]{1,2}[-/.\\][\d০-৯]{2,4})/g); let end = r ? r[r.length-1] : "..."; document.getElementById('endDt1').innerText = end; document.getElementById('endDt2').innerText = end; }
     function backupDBLocal() { const b = new Blob([JSON.stringify({entries, masterCats, periodCatsStore})], {type: 'application/json'}); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `JBC_Manual_Backup.json`; a.click(); }
-    function exportExcel() { const b = new Blob(['\ufeff', document.getElementById('mainTable').outerHTML], { type: 'application/vnd.ms-excel' }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `JBC_Report.xls`; a.click(); }
+    function restoreDB(ev) { const r = new FileReader(); r.onload = (e) => { try { const d = JSON.parse(e.target.result); entries = d.entries || []; masterCats = d.masterCats || masterCats; periodCatsStore = d.periodCatsStore || {}; localStorage.setItem('jbc_db_v46', JSON.stringify(entries)); localStorage.setItem('jbc_pay_v46', JSON.stringify(masterCats)); localStorage.setItem('jbc_period_cats_v46', JSON.stringify(periodCatsStore)); location.reload(); } catch(err) { alert("ফাইলটি সঠিক নয়!"); } }; r.readAsText(ev.target.files[0]); }
+    function exportExcel() { const summaryHtml = document.querySelector('.footer-summary').innerHTML; const b = new Blob(['\ufeff', document.getElementById('mainTable').outerHTML, summaryHtml], { type: 'application/vnd.ms-excel' }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `JBC_Report.xls`; a.click(); }
 
     function finalizePeriod() {
         const selM = Array.from(document.querySelectorAll('.month-check:checked')); if (selM.length !== 1) { alert("একটি মাস সিলেক্ট করুন।"); return; }
@@ -341,12 +391,29 @@
         const p = document.getElementById('filterPeriod').value, y = document.getElementById('filterYear').value, m = selM[0].value;
         let nD = (p === "P1") ? `${y}-${String(m).padStart(2, '0')}-16` : (m == 12 ? `${parseInt(y)+1}-01-01` : `${y}-${String(parseInt(m)+1).padStart(2, '0')}-01`);
         entries = entries.filter(e => !(e.date === nD && e.cat === "জের বি/এফ"));
-        entries.push({ id: Date.now()+1, date: nD, type: 'receipt', desc: "জের বি/এফ", cat: "জের বি/এফ", mode: 'bank', amt: jB, vou: '-', chk: '-' });
-        entries.push({ id: Date.now()+2, date: nD, type: 'receipt', desc: "জের বি/এফ", cat: "জের বি/এফ", mode: 'cash', amt: jC, vou: '-', chk: '-' });
+        if(jB !== 0) entries.push({ id: Date.now()+1, date: nD, type: 'receipt', desc: "জের বি/এফ", cat: "জের বি/এফ", mode: 'bank', amt: jB, vou: '-', chk: '-' });
+        if(jC !== 0) entries.push({ id: Date.now()+2, date: nD, type: 'receipt', desc: "জের বি/এফ", cat: "জের বি/এফ", mode: 'cash', amt: jC, vou: '-', chk: '-' });
         localStorage.setItem('jbc_db_v46', JSON.stringify(entries));
         if(localStorage.getItem('gdrive_tk')) syncWithCloud();
-        alert("ফাইনাল সাবমিট সম্পন্ন!"); updateUI();
+        alert("ফাইনাল সাবমিট সম্পন্ন!");
+        if(p === "P1") document.getElementById('filterPeriod').value = "P2";
+        autoCalcPrevExpenses();
+        updateUI();
     }
+
+    function editEntry(id) {
+        const e = entries.find(x => x.id === id); if (!e) return;
+        document.getElementById('editId').value = e.id; document.getElementById('date').value = e.date;
+        document.getElementById('type').value = e.type; refreshDropdowns();
+        document.getElementById('desc').value = e.desc; document.getElementById('catSelect').value = e.cat;
+        document.getElementById('vou').value = e.vou==='-'?'':e.vou; document.getElementById('chk').value = e.chk==='-'?'':e.chk;
+        document.getElementById('mode').value = e.mode; document.getElementById('amtInp').value = e.amt;
+        toggleInputs();
+        document.getElementById('submitBtn').innerText = "আপডেট করুন"; document.getElementById('cancelBtn').style.display = "inline-block";
+        document.getElementById('ledgerForm').scrollIntoView({behavior:'smooth'});
+    }
+
+    function cancelEdit() { document.getElementById('ledgerForm').reset(); document.getElementById('editId').value = ""; document.getElementById('submitBtn').innerText = "এন্ট্রি করুন"; document.getElementById('cancelBtn').style.display = "none"; toggleInputs(); refreshDropdowns(); }
 
     document.getElementById('ledgerForm').addEventListener('submit', (e) => {
         e.preventDefault();
@@ -354,10 +421,18 @@
         const m = parseInt(dateInput[1]), d = parseInt(dateInput[2]);
         const selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => parseInt(cb.value));
         const selP = document.getElementById('filterPeriod').value;
-        if (!selM.includes(m) || (selP==="P1" && d>15) || (selP==="P2" && d<16)) { alert("ভুল তারিখ!"); return; }
-        entries.push({ id: Date.now(), date: document.getElementById('date').value, type: document.getElementById('type').value, desc: document.getElementById('desc').value, cat: document.getElementById('catSelect').value, vou: document.getElementById('vou').value || '-', chk: document.getElementById('chk').value || '-', mode: document.getElementById('mode').value, amt: toEn(document.getElementById('amtInp').value) });
-        localStorage.setItem('jbc_db_v46', JSON.stringify(entries)); e.target.reset(); refreshUI();
+        if (!selM.includes(m)) { alert("এই তারিখটি নির্বাচিত মাসের মধ্যে নেই!"); return; }
+        if(selP === "P1" && d > 15) { alert("সতর্কতা: ১-১৫ তারিখের অংশে ১৬ তারিখ বা তার পরের তারিখ গ্রহণযোগ্য নয়।"); return; }
+        if(selP === "P2" && d < 16) { alert("সতর্কতা: ১৬-শেষ তারিখের অংশে ১৫ তারিখ বা তার আগের তারিখ গ্রহণযোগ্য নয়।"); return; }
+        const editId = document.getElementById('editId').value;
+        const entryData = { id: editId ? parseInt(editId) : Date.now(), date: document.getElementById('date').value, type: document.getElementById('type').value, desc: document.getElementById('desc').value, cat: document.getElementById('catSelect').value, vou: document.getElementById('vou').value || '-', chk: document.getElementById('chk').value || '-', mode: document.getElementById('mode').value, amt: toEn(document.getElementById('amtInp').value) };
+        if (editId) entries = entries.map(ent => ent.id === parseInt(editId) ? entryData : ent);
+        else entries.push(entryData);
+        localStorage.setItem('jbc_db_v46', JSON.stringify(entries));
+        cancelEdit(); refreshUI();
     });
+
+    function refreshUI() { refreshDropdowns(); updateUI(); }
 
     window.onload = () => {
         gapiLoaded(); gisLoaded(); renderMonthDropdown();
