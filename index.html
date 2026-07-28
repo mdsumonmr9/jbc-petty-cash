@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JBC Analytical Petty Cash - Secure Cloud v46</title>
-    <!-- Google API Scripts -->
+    <title>JBC Analytical Petty Cash - Secure Cloud v54</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js" async defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
             --receipt-color: #fcc100;
@@ -14,116 +14,168 @@
             --breakdown-color: #a0c4df;
             --border: #000;
             --accent: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #f59e0b;
         }
 
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 10px; background-color: #f0f2f5; }
-        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.2); width: fit-content; min-width: 98%; margin: auto; }
+        body { font-family: 'Segoe UI', Tahoma, 'Arial Unicode MS', sans-serif; margin: 0; padding: 10px; background-color: #f0f2f5; color: #1e293b; }
+        .container { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.2); width: fit-content; min-width: 99%; margin: auto; }
 
-        .header { text-align: center; margin-bottom: 10px; }
-        .header h1 { margin: 0; font-size: 26px; font-weight: bold; }
+        .cloud-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; color: white; padding: 8px 15px; border-radius: 5px; margin-bottom: 10px; font-size: 13px; }
+        .sync-btn { background: var(--accent); color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.3s; margin-left: 5px; }
+        
+        .header { text-align: center; margin-bottom: 5px; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: bold; }
         .editable-text { display: inline-block; padding: 2px 10px; border: 1px dashed #ccc; cursor: text; font-weight: bold; min-width: 250px; }
 
-        /* Cloud Sync Bar */
-        .cloud-bar { display: flex; justify-content: space-between; align-items: center; background: #1e293b; color: white; padding: 8px 15px; border-radius: 5px; margin-bottom: 10px; font-size: 13px; }
-        .sync-btn { background: var(--accent); color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .recon-box { padding: 6px 15px; border-radius: 5px; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 8px; border: 1px solid #ccc; background: #fff; margin-bottom: 8px; justify-content: center; }
+        .status-ok { color: var(--success); border-color: var(--success); }
+        .status-err { color: var(--danger); border-color: var(--danger); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% {opacity:1} 50% {opacity:0.6} 100% {opacity:1} }
 
-        .dashboard { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
-        .card { background: #fff; border: 1px solid #ddd; padding: 10px 20px; border-radius: 5px; text-align: center; min-width: 150px; }
-        .card h4 { margin: 0; font-size: 12px; color: #555; }
-        .card p { margin: 5px 0 0; font-size: 18px; font-weight: bold; }
+        .dashboard { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; flex-wrap: wrap; }
+        .card { background: #fff; border: 1px solid #ddd; padding: 8px 15px; border-radius: 5px; text-align: center; min-width: 130px; }
+        .card h4 { margin: 0; font-size: 11px; color: #555; }
+        .card p { margin: 4px 0 0; font-size: 16px; font-weight: bold; }
 
-        .filter-section { background: #fff; border: 1px solid #3b82f6; padding: 10px; border-radius: 5px; margin-bottom: 10px; display: flex; gap: 15px; align-items: center; justify-content: center; }
-        .dropdown-container { position: relative; width: 170px; }
-        .dropdown-button { padding: 8px; border: 1px solid #999; border-radius: 4px; background: #fff; cursor: pointer; display: flex; justify-content: space-between; font-size: 13px; }
+        .filter-section { background: #fff; border: 1px solid #3b82f6; padding: 8px; border-radius: 5px; margin-bottom: 10px; display: flex; gap: 12px; align-items: center; justify-content: center; font-size: 13px; }
+        .dropdown-container { position: relative; width: 160px; }
+        .dropdown-button { padding: 6px; border: 1px solid #999; border-radius: 4px; background: #fff; cursor: pointer; display: flex; justify-content: space-between; font-size: 12px; }
         .dropdown-content { display: none; position: absolute; background-color: #fff; min-width: 100%; box-shadow: 0px 8px 16px rgba(0,0,0,0.2); z-index: 1000; border: 1px solid #ccc; max-height: 250px; overflow-y: auto; padding: 5px; border-radius: 4px; }
         .show { display: block; }
 
-        .table-wrapper { width: 100%; margin-top: 10px; overflow-x: auto; }
+        .table-wrapper { width: 100%; margin-top: 5px; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; white-space: nowrap; border: 2px solid var(--border); }
-        th, td { border: 1px solid var(--border); padding: 5px 8px; text-align: center; font-weight: bold; }
-        
+        th, td { border: 1px solid var(--border); padding: 4px 6px; text-align: center; font-weight: bold; }
         .receipt-head { background-color: var(--receipt-color) !important; }
         .payment-head { background-color: var(--payment-color) !important; }
         .breakdown-head { background-color: var(--breakdown-color) !important; }
-        .amt { text-align: right; min-width: 75px; }
+        .amt { text-align: right; min-width: 70px; }
 
-        .input-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 5px; background: #e2e8f0; padding: 10px; border-radius: 5px; margin-top: 10px; }
-        input, select, button { padding: 6px; font-size: 12px; border: 1px solid #999; border-radius: 4px; }
-        .btn-save { background: #059669; color: white; border: none; cursor: pointer; font-weight: bold; }
-        .btn-final { background: #f59e0b; color: black; border: none; cursor: pointer; font-weight: bold; padding: 10px 20px; }
+        .input-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 4px; background: #e2e8f0; padding: 8px; border-radius: 5px; margin-top: 8px; }
+        input, select, button { padding: 5px; font-size: 12px; border: 1px solid #999; border-radius: 4px; }
+        .btn-save { background: var(--success); color: white; border: none; cursor: pointer; font-weight: bold; }
+        .btn-final { background: var(--warning); color: black; border: none; cursor: pointer; font-weight: bold; padding: 8px 18px; }
 
-        .action-btns { display: flex; gap: 5px; justify-content: center; }
-        .edit-btn-row { color: #2563eb; cursor: pointer; border: none; background: none; font-size: 14px; }
+        .footer-summary { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px; border-top: 2px solid #000; padding-top: 10px; align-items: flex-start; justify-content: space-between; }
+        .summary-box { width: 350px; border-collapse: collapse; font-size: 10.5px; }
+        .cumulative-line { font-size: 12px; font-weight: bold; line-height: 1.4; border-left: 4px solid var(--accent); padding-left: 10px; }
 
-        .summary-box { margin-top: 15px; width: 450px; border-collapse: collapse; border: 1.5px solid #000; }
-        .summary-box th { background: #eee; border: 1px solid #000; }
-        .summary-box td { border: 1px solid #000; padding: 6px 12px; }
+        #customModal { display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; }
+        .modal-content { background:white; padding:20px; border-radius:8px; width:380px; text-align:center; }
+        .toast { position:fixed; bottom:20px; right:20px; padding:12px 24px; border-radius:4px; color:white; z-index:10000; display:none; font-weight:bold; }
 
-        .error-msg { color: #dc2626; background: #fee2e2; padding: 10px; border-radius: 4px; margin-top: 10px; display: none; border: 1.5px solid #dc2626; font-weight: bold; text-align: center; }
+        .btn-group { margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .cat-chip { background: #e2e8f0; padding: 3px 8px; border-radius: 15px; display: flex; gap: 5px; align-items: center; font-size: 10px; }
 
-        .cat-move-box { background: #eef2f3; padding: 10px; border-radius: 5px; border: 1px solid #ccc; display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
-        .cat-chip { background: #fff; border: 1px solid #999; padding: 2px 8px; border-radius: 4px; display: flex; align-items: center; gap: 5px; font-size: 11px; }
-        .cat-chip b { cursor: pointer; color: blue; }
-        .del-btn-row { color: red; border: none; background: none; cursor: pointer; font-weight: bold; font-size: 14px; }
-
+        /* PRINT SETTINGS - LEGAL LANDSCAPE & AUTO FIT */
         @media print {
-            @page { size: legal landscape; margin: 8mm; }
-            .no-print, .btn-group, .action-btns, .filter-section, .btn-final, .cloud-bar, .cat-move-box, .dashboard { display: none !important; }
-            .table-wrapper { overflow: visible !important; }
-            table { font-size: 10px !important; width: 100% !important; }
-            th, td { border: 0.5pt solid #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        }
+            @page { size: legal landscape; margin: 0.3in; }
+            body { background: white; padding: 0; margin: 0; }
+            .container { box-shadow: none; width: 100% !important; margin: 0; padding: 0; }
+            
+            .no-print, .header, .btn-group, .action-btns, .filter-section, .btn-final, .cloud-bar, .cat-move-box, .dashboard, .recon-box, #undoBtn, #unlockBtn, #rf { 
+                display: none !important; 
+            }
+            
+            .table-wrapper { overflow: visible !important; width: 100% !important; }
+            table { width: 100% !important; table-layout: auto !important; border-collapse: collapse !important; page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
+            
+            /* Smart Scaling Logic */
+            .print-v-sm { font-size: 7pt !important; }
+            .print-v-sm td, .print-v-sm th { padding: 1px 2px !important; border-width: 0.5pt !important; }
+            
+            .print-sm { font-size: 8pt !important; }
+            .print-sm td, .print-sm th { padding: 2px 3px !important; }
+            
+            .print-md { font-size: 9pt !important; }
+            .print-md td, .print-md th { padding: 3px 4px !important; }
 
-        .btn-group { margin-top: 20px; display: flex; gap: 10px; }
+            .print-header-repeat { display: table-row !important; text-align: center; background: white !important; }
+            .print-header-repeat h1 { font-size: 18pt; margin: 0; color: black; }
+            .print-header-repeat h3 { font-size: 14pt; margin: 3px 0; }
+            
+            .footer-summary { page-break-inside: avoid; display: flex !important; width: 100%; margin-top: 15px; }
+        }
+        .print-header-repeat { display: none; }
     </style>
 </head>
 <body>
 
+<div id="toast" class="toast"></div>
+
+<!-- History Modal -->
+<div id="historyModal" style="display:none; position:fixed; z-index:2000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8); overflow-y:auto; padding:20px;">
+    <div style="background:white; padding:20px; border-radius:8px; width:95%; margin:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h2>আর্কাইভ ও রিসাইকেল বিন</h2>
+            <button onclick="closeHistory()" style="background:red; color:white; padding:5px 15px; cursor:pointer;">বন্ধ করুন</button>
+        </div>
+        <div id="historyList"></div>
+    </div>
+</div>
+
+<div id="customModal">
+    <div class="modal-content">
+        <h3 id="modalTitle">নিশ্চিত করুন</h3>
+        <p id="modalMsg"></p>
+        <div style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
+            <button id="modalConfirmBtn" class="btn-save" style="padding:8px 20px;">হ্যাঁ</button>
+            <button onclick="closeModal()" style="background:#64748b; color:white; border:none; padding:8px 20px; cursor:pointer;">না</button>
+        </div>
+    </div>
+</div>
+
 <div class="container">
-    <!-- Cloud Bar (API Key is handled dynamically) -->
     <div class="cloud-bar no-print">
-        <div>☁️ ক্লাউড সিঙ্ক: <span id="cloudStatus">ডিসকানেক্টেড</span> | <span id="lastSync">সিঙ্ক নেই</span></div>
+        <div>☁️ ক্লাউড: <span id="cloudStatus">চেকিং...</span> | <span id="lastSync">সিঙ্ক নেই</span></div>
         <div>
-            <button id="authBtn" class="sync-btn" onclick="initiateAuth()">Google Login</button>
-            <button id="syncBtn" class="sync-btn" style="display:none; background:#16a34a" onclick="syncWithCloud()">Sync Now</button>
-            <button id="keyBtn" class="sync-btn" style="background:#64748b" onclick="resetApiKey()">Update Key</button>
-            <button id="undoBtn" class="sync-btn" style="display:none; background:#6366f1" onclick="undoRestore()">↺ Undo Restore</button>
+            <button class="sync-btn" style="background:#6366f1" onclick="openHistory()">📜 Archive</button>
+            <button id="authBtn" class="sync-btn" onclick="handleAuth()">Google Login</button>
+            <button id="syncBtn" class="sync-btn" style="display:none; background:var(--success)" onclick="syncWithCloud()">Sync Now</button>
+            <button id="passBtn" class="sync-btn" style="background:#64748b" onclick="changeAdminPass()">🔑 Password</button>
+            <button id="undoBtn" class="sync-btn" style="display:none; background:#f43f5e" onclick="popSafetyStack()">↺ Undo Restore</button>
         </div>
     </div>
 
     <div class="header">
         <h1>জীবন বীমা কর্পোরেশন</h1>
         <div class="editable-text" id="offName" contenteditable="true" onblur="saveHeader()">অফিসের নাম লিখুন</div> <br>
-        <p>পেটিক্যাশ স্টেটমেন্ট: <span class="editable-text" id="dateRange" contenteditable="true" onblur="saveHeader()">০১/০৭/২০২৬ হতে ১৫/০৭/২০২৬ পর্যন্ত</span></p>
+        <p>পেটিক্যাশ স্টেটমেন্ট: <span id="dateRangeDisplay" style="font-weight:bold;">...</span></p>
     </div>
 
-    <!-- ড্যাশবোর্ড -->
+    <div id="lockNotice" style="background: #fee2e2; color: #b91c1c; padding: 5px; text-align: center; font-weight: bold; border-radius: 4px; margin-bottom: 8px; display: none;">🔒 এই পিরিয়ডটি ফাইনাল সাবমিট করা হয়েছে।</div>
+    <div id="reconStatus" class="recon-box no-print">হিসাব যাচাই করা হচ্ছে...</div>
+
     <div class="dashboard no-print">
         <div class="card"><h4>ক্যাশ ব্যালেন্স</h4><p id="dashCash">০.০০</p></div>
         <div class="card"><h4>ব্যাংক ব্যালেন্স</h4><p id="dashBank">০.০০</p></div>
-        <div class="card" style="border-color: #3b82f6;"><h4>সার্চ</h4><input type="text" id="searchBox" placeholder="খুঁজুন..." oninput="updateUI()" style="width:120px"></div>
+        <div class="card" style="border-color: var(--accent);"><h4>সার্চ</h4><input type="text" id="searchBox" placeholder="খুঁজুন..." oninput="updateUI()" style="width:130px"></div>
     </div>
 
-    <!-- Filters -->
     <div class="filter-section no-print">
         <div class="dropdown-container">
-            <strong>মাস নির্বাচন:</strong>
+            <strong>মাস:</strong>
             <div class="dropdown-button" onclick="toggleDropdown()"><span id="selectedMonthText">মাস বেছে নিন</span> <span>▼</span></div>
             <div class="dropdown-content" id="monthDropdown"></div>
         </div>
         <div>
             <strong>পিরিয়ড:</strong><br>
-            <select id="filterPeriod" onchange="autoCalcPrevExpenses(); updateUI();">
+            <select id="filterPeriod" onchange="autoGenDateRange(); autoCalcOpeningExpense(); updateUI();">
                 <option value="P1">১ থেকে ১৫ তারিখ</option>
                 <option value="P2">১৬ থেকে শেষ তারিখ</option>
                 <option value="FULL">পুরো মাস</option>
             </select>
         </div>
-        <div><strong>বছর:</strong><br><select id="filterYear" onchange="autoCalcPrevExpenses(); updateUI();"></select></div>
+        <div><strong>বছর:</strong><br><select id="filterYear" onchange="autoGenDateRange(); autoCalcOpeningExpense(); updateUI();"></select></div>
     </div>
 
     <div class="no-print">
-        <div class="cat-move-box" id="catOrderList"></div>
+        <div class="cat-move-box" id="catOrderList" style="background: #f8fafc; padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;"></div>
         <form id="ledgerForm" class="input-form">
             <input type="date" id="date" required>
             <select id="type" onchange="refreshDropdowns(); toggleInputs();">
@@ -132,26 +184,26 @@
             </select>
             <input type="text" id="desc" list="descList" placeholder="বিবরণ" required>
             <datalist id="descList"></datalist>
-            <input type="text" id="vou" placeholder="ভাউচার নং">
+            <input type="text" id="vou" placeholder="ভাউচার">
             <input type="text" id="chk" placeholder="চেক নং">
             <select id="mode"><option value="bank">Bank</option><option value="cash">Cash</option></select>
-            <select id="catSelect" onchange="handleDropdownAction()"></select>
-            <input type="text" id="amtInp" placeholder="টাকা" required>
+            <select id="catSelect"></select>
+            <input type="text" id="amtInp" placeholder="টাকা (বাংলায়)" required>
             <input type="hidden" id="editId" value="">
             <button type="submit" id="submitBtn" class="btn-save">এন্ট্রি করুন</button>
-            <button type="button" id="cancelBtn" style="display:none; background:#6c757d; color:white; border:none;" onclick="cancelEdit()">বাতিল</button>
+            <button type="button" id="cancelBtn" style="display:none; background:#64748b; color:white;" onclick="cancelEdit()">বাতিল</button>
         </form>
-        <div style="margin-top:10px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <strong>অদ্যাবধি পূর্বের খরচ:</strong>
-                <input type="text" id="pb" placeholder="ব্যাংক" onchange="updateUI()" style="width:100px">
-                <input type="text" id="pc" placeholder="ক্যাশ" onchange="updateUI()" style="width:100px">
+        
+        <div style="margin-top:10px; display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 8px; border: 1px solid #3b82f6; border-radius: 5px;">
+            <div id="openingInputsContainer">
+                <strong>ওপেনিং খরচ:</strong>
+                <input type="text" id="pb" placeholder="ব্যাংক" oninput="manualOpeningChange()" style="width:100px;">
+                <input type="text" id="pc" placeholder="ক্যাশ" oninput="manualOpeningChange()" style="width:100px;">
+                <button onclick="resetOpeningToAuto()" id="resetAutoBtn" style="font-size:10px; cursor:pointer;">Reset Auto</button>
             </div>
-            <button class="btn-final" onclick="finalizePeriod()">ফাইনাল সাবমিট</button>
+            <button id="finalSubmitBtn" class="btn-final" onclick="finalSubmitWorkflow()">ফাইনাল সাবমিট</button>
         </div>
     </div>
-
-    <div id="validationWarning" class="error-msg"></div>
 
     <div class="table-wrapper">
         <table id="mainTable">
@@ -161,286 +213,582 @@
         </table>
     </div>
 
-    <div class="footer-summary">
+    <div class="footer-summary" id="footerSnapshot">
         <table class="summary-box">
             <thead><tr><th rowspan="2">বিবরণ</th><th colspan="2">টাকার পরিমাণ</th></tr><tr><th>ব্যাংক</th><th>ক্যাশ</th></tr></thead>
             <tbody>
                 <tr><td class="receipt-head">মোট প্রাপ্তি (Receipt)</td><td class="amt" id="sumRB">০.০০</td><td class="amt" id="sumRC">০.০০</td></tr>
                 <tr><td class="payment-head">(-) মোট খরচ (Payment)</td><td class="amt" id="sumPB">০.০০</td><td class="amt" id="sumPC">০.০০</td></tr>
-                <tr style="font-size: 16px; color: #be123c; font-weight: bold;"><td>জের (Balance/Jer)</td><td class="amt" id="jerB">০.০০</td><td class="amt" id="jerC">০.০০</td></tr>
+                <tr style="font-weight: bold; border-top: 1px solid #000;"><td>জের (Balance/Jer)</td><td class="amt" id="jerB">০.০০</td><td class="amt" id="jerC">০.০০</td></tr>
             </tbody>
         </table>
-        <div style="margin-top:10px; font-weight: bold; font-size: 14px;">
-            <span id="endDt1">...</span> পর্যন্ত ক্যাশ খরচ- <span id="pCash">০.০০</span> <br>
-            <span id="endDt2">...</span> পর্যন্ত ব্যাংক খরচ- <span id="pBank">০.০০</span>
-        </div>
         <div class="cumulative-line">
-            অদ্যাবধি মোট ব্যাংক খরচ: <span id="cumBText">০ + ০ = ০</span> <br>
-            অদ্যাবধি মোট ক্যাশ খরচ: <span id="cumCText">০ + ০ = ০</span>
+            <span id="endDtLabel">...</span> পর্যন্ত ক্যাশ খরচ: <span id="pCash">০.০০</span>, ব্যাংক খরচ: <span id="pBank">০.০০</span><br>
+            অদ্যাবধি ব্যাংক খরচ: <span id="cumBText">০ + ০ = ০</span> <br>
+            অদ্যাবধি ক্যাশ খরচ: <span id="cumCText">০ + ০ = ০</span>
         </div>
     </div>
 
     <div class="btn-group no-print">
-        <button onclick="window.print()" style="background:#000; color:white; padding:10px 20px; cursor:pointer;">পিডিএফ ডাউনলোড</button>
-        <button onclick="exportExcel()" style="background:#16a34a; color:white; padding:10px 20px; cursor:pointer;">Excel ডাউনলোড</button>
-        <button onclick="backupDBLocal()" style="background:#2563eb; color:white; padding:10px 20px; cursor:pointer;">ফাইল ব্যাকআপ (JSON)</button>
-        <button onclick="document.getElementById('rf').click()" style="background:#6c757d; color:white; padding:10px 20px; cursor:pointer;">রিস্টোর</button>
-        <input type="file" id="rf" style="display:none" onchange="restoreDB(event)">
-        <button onclick="if(confirm('সব ডাটা মুছে যাবে!')) {localStorage.clear(); location.reload();}" style="background:#ddd; border:none; padding:10px; cursor:pointer;">সব মুছুন</button>
+        <button onclick="window.print()" style="background:#000; color:white;">পিডিএফ ডাউনলোড</button>
+        <button onclick="exportToExcelAdvanced()" style="background:var(--success); color:white;">Excel ডাউনলোড</button>
+        <button onclick="exportToWordAdvanced()" style="background:#0891b2; color:white;">Word ডাউনলোড</button>
+        <button onclick="createLocalBackup()" style="background:var(--accent); color:white;">ব্যাকআপ (JSON)</button>
+        <button onclick="document.getElementById('rf').click()" style="background:#64748b; color:white;">রিস্টোর</button>
+        <button onclick="confirmClearAll()" style="background:#dc2626; color:white;">সব মুছুন</button>
+        <input type="file" id="rf" style="display:none" onchange="handleRestore(event)">
+        <button id="unlockBtn" style="display:none; background:#fbbf24; color:black" onclick="adminUnlock()">🔓 Unlock</button>
     </div>
 </div>
 
 <script>
-    // --- Security Config (Now Localized) ---
+    const APP_VERSION = "v54";
     const CLIENT_ID = '646770638834-b9299kfg2ovcbblgk149arbs0kg976nc.apps.googleusercontent.com'; 
-    let API_KEY = localStorage.getItem('jbc_api_key') || '';
     const DISCOVERY_DOC = "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest";
     const SCOPES = "https://www.googleapis.com/auth/drive.file";
+    
+    const K = {
+        DB: `jbc_db_${APP_VERSION}`, CATS: `jbc_cats_${APP_VERSION}`, PCATS: `jbc_pcats_${APP_VERSION}`,
+        OPENINGS: `jbc_open_${APP_VERSION}`, HISTORY: `jbc_hist_${APP_VERSION}`, LOCKS: `jbc_locks_${APP_VERSION}`,
+        SAFETY_STACK: `jbc_safety_stack_${APP_VERSION}`, SETTINGS: `jbc_set_${APP_VERSION}`, 
+        PASS_SHA: `jbc_psha_${APP_VERSION}`, SECURE_API: `jbc_sapi_${APP_VERSION}`
+    };
 
     const bnNums = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
     const monthNames = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
-    
-    function toBn(n) { if (n===""||isNaN(n)) return "০.০০"; return String(parseFloat(n).toFixed(2)).replace(/\d/g, d => bnNums[d] || d); }
-    function toEn(n) { if(typeof n === 'number') return n; return parseFloat(String(n).replace(/[০-৯]/g, d => ({"০":0,"১":1,"২":2,"৩":3,"৪":4,"৫":5,"৬":6,"৭":7,"৮":8,"৯":9}[d]))) || 0; }
-    function formatDateToBn(dateStr) { const p = dateStr.split('-'); return `${numToBn(p[2]).replace('.০০','')}/${numToBn(p[1]).replace('.০০','')}/${numToBn(p[0]).replace('.০০','')}`; }
-    function numToBn(n) { return String(parseFloat(n).toFixed(2)).replace(/\d/g, d => bnNums[d] || d); }
 
-    let entries = JSON.parse(localStorage.getItem('jbc_db_v46')) || [];
-    let masterCats = JSON.parse(localStorage.getItem('jbc_pay_v46')) || ["১ম বর্ষ কমিশন", "নবায়ন কমিশন", "বেতন উন্নয়ন", "উৎসব বোনাস", "উৎসাহ বোনাস", "লাঃ সাঃ অফিস", "মজুরি", "স্টেশনারী", "ইন্টারনেট বিল", "পত্রিকা বিল", "ক্যাশ ভাতা", "টেলিফোন বিল", "রাজস্ব স্ট্যাম্প", "ফটোকপি", "লাঞ্চ সাবসিডি", "ডাক খরচ", "মেডিকেল বিল", "বিবিধ"];
-    let periodCatsStore = JSON.parse(localStorage.getItem('jbc_period_cats_v46')) || {};
-    let savedDescs = JSON.parse(localStorage.getItem('jbc_descs_v46')) || [];
-
-    // --- Dynamic API Key Logic ---
-    function initiateAuth() {
-        if (!API_KEY) {
-            const key = prompt("আপনার Google API Key টি দিন (এটি শুধুমাত্র আপনার ব্রাউজারে সেভ থাকবে):");
-            if (key) {
-                localStorage.setItem('jbc_api_key', key);
-                API_KEY = key;
-                location.reload();
-            } else return;
-        }
-        handleAuthClick();
-    }
-
-    function resetApiKey() {
-        const key = prompt("নতুন Google API Key টি দিন:", API_KEY);
-        if (key) {
-            localStorage.setItem('jbc_api_key', key);
-            location.reload();
-        }
-    }
-
-    // --- Google Drive Logic ---
+    let entries = JSON.parse(localStorage.getItem(K.DB)) || [];
+    let masterCats = JSON.parse(localStorage.getItem(K.CATS)) || ["১ম বর্ষ কমিশন", "নবায়ন কমিশন", "বেতন উন্নয়ন", "উৎসব বোনাস", "উৎসাহ বোনাস", "লাঃ সাঃ অফিস", "মজুরি", "স্টেশনারী", "ইন্টারনেট বিল", "পত্রিকা বিল", "ক্যাশ ভাতা", "টেলিফোন বিল", "রাজস্ব স্ট্যাম্প", "ফটোকপি", "লাঞ্চ সাবসিডি", "ডাক খরচ", "মেডিকেল বিল", "বিবিধ"];
+    let periodCatsStore = JSON.parse(localStorage.getItem(K.PCATS)) || {};
+    let cumOpenings = JSON.parse(localStorage.getItem(K.OPENINGS)) || {};
+    let historyData = JSON.parse(localStorage.getItem(K.HISTORY)) || [];
+    let lockedPeriods = JSON.parse(localStorage.getItem(K.LOCKS)) || [];
     let tokenClient;
-    function gapiLoaded() { try { if(API_KEY) gapi.load('client', async () => { await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] }); checkCloudStatus(); }); } catch(e) { console.warn('ক্লাউড (Google API) লোড হয়নি, অফলাইন মোডে চলছে:', e); } }
-    function gisLoaded() { try { tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: '' }); } catch(e) { console.warn('ক্লাউড (Google Identity) লোড হয়নি, অফলাইন মোডে চলছে:', e); } }
-    function checkCloudStatus() { if(localStorage.getItem('gdrive_tk')) { document.getElementById('cloudStatus').innerText="কানেক্টেড ✅"; document.getElementById('syncBtn').style.display="inline-block"; } }
-    function handleAuthClick() { tokenClient.callback = (resp) => { if (resp.error) return; localStorage.setItem('gdrive_tk', resp.access_token); syncWithCloud(); }; tokenClient.requestAccessToken({prompt: 'consent'}); }
+
+    async function hashSHA256(str) {
+        if(!str) return "";
+        const msgBuffer = new TextEncoder().encode(str);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function obfuscate(str) {
+        if(!str) return "";
+        const salt = "JBC_SALT_2026";
+        let out = "";
+        for (let i = 0; i < str.length; i++) {
+            out += String.fromCharCode(str.charCodeAt(i) ^ salt.charCodeAt(i % salt.length));
+        }
+        return btoa(out);
+    }
+
+    function deobfuscate(b64) {
+        if(!b64) return "";
+        try {
+            const str = atob(b64);
+            const salt = "JBC_SALT_2026";
+            let out = "";
+            for (let i = 0; i < str.length; i++) {
+                out += String.fromCharCode(str.charCodeAt(i) ^ salt.charCodeAt(i % salt.length));
+            }
+            return out;
+        } catch(e) { return ""; }
+    }
+
+    function toBn(n) { if (n===""||n===null||isNaN(parseFloat(n))) return "০.০০"; return n.toLocaleString('bn-BD', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+    function toEn(n) { let s = String(n).replace(/[০-৯]/g, d => bnNums.indexOf(d)).replace(/,/g, ''); return parseFloat(s) || 0; }
+    function formatDateToBn(dateStr) { if(!dateStr) return "..."; const p = dateStr.split('-'); return `${numToBn(p[2])}/${numToBn(p[1])}/${numToBn(p[0])}`; }
+    function numToBn(n) { return String(parseInt(n)).replace(/\d/g, d => bnNums[d]); }
+    function numToBnStrict(str) { return String(str).replace(/\d/g, d => bnNums[d]); }
+
+    function showToast(msg, type='info') {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.background = type === 'success' ? 'var(--success)' : (type === 'err' ? 'var(--danger)' : '#1e293b');
+        t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
+    }
+
+    function showModal(title, msg, onConfirm) {
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalMsg').innerText = msg;
+        document.getElementById('customModal').style.display = 'flex';
+        document.getElementById('modalConfirmBtn').onclick = () => { onConfirm(); closeModal(); };
+    }
+    function closeModal() { document.getElementById('customModal').style.display = 'none'; }
+
+    function pushToSafetyStack() {
+        let stack = JSON.parse(localStorage.getItem(K.SAFETY_STACK)) || [];
+        stack.push({ ts: Date.now(), bundle: createSystemBundle() });
+        if (stack.length > 5) stack.shift();
+        localStorage.setItem(K.SAFETY_STACK, JSON.stringify(stack));
+        document.getElementById('undoBtn').style.display = "inline-block";
+    }
+
+    function popSafetyStack() {
+        let stack = JSON.parse(localStorage.getItem(K.SAFETY_STACK)) || [];
+        if (stack.length === 0) return;
+        const last = stack.pop();
+        applySystemBundle(last.bundle);
+        localStorage.setItem(K.SAFETY_STACK, JSON.stringify(stack));
+        if (stack.length === 0) document.getElementById('undoBtn').style.display = "none";
+        showToast("সফলভাবে Undo করা হয়েছে!", "success");
+    }
+
+    async function handleAuth(isSilent = false) {
+        const apiKey = deobfuscate(localStorage.getItem(K.SECURE_API));
+        if (!apiKey) {
+            if(isSilent) return;
+            let key = prompt("API Key:");
+            if (key) { localStorage.setItem(K.SECURE_API, obfuscate(key)); location.reload(); }
+            return;
+        }
+        const exp = sessionStorage.getItem('gdrive_tk_exp');
+        if (isSilent && exp && (Date.now() < parseInt(exp) - 120000)) {
+            checkCloudStatus(); return;
+        }
+        try {
+            if (isSilent) tokenClient.requestAccessToken({ prompt: 'none' }); 
+            else tokenClient.requestAccessToken({ prompt: 'consent' });
+        } catch(e) {}
+    }
+
+    function checkCloudStatus() {
+        const token = sessionStorage.getItem('gdrive_tk');
+        if (token) {
+            document.getElementById('cloudStatus').innerText = "কানেক্টেড ✅";
+            document.getElementById('syncBtn').style.display = "inline-block";
+            gapi.client.setToken({ access_token: token });
+        } else {
+            document.getElementById('cloudStatus').innerText = "ডিসকানেক্টেড";
+            document.getElementById('syncBtn').style.display = "none";
+        }
+    }
 
     async function syncWithCloud() {
         try {
-            const token = localStorage.getItem('gdrive_tk');
-            if(!token || !API_KEY) return;
-            gapi.client.setToken({access_token: token});
-            const bundle = { sig: "JBC_PRO", data: { entries, masterCats, periodCatsStore, off: document.getElementById('offName').innerText } };
-            const fileMetadata = { 'name': `JBC_Sync_${new Date().toLocaleDateString()}.json`, 'parents': ['root'] };
-            const media = { mimeType: 'application/json', body: JSON.stringify(bundle) };
-            await gapi.client.drive.files.create({ resource: fileMetadata, media: media, fields: 'id' });
-            document.getElementById('lastSync').innerText = new Date().toLocaleTimeString('bn-BD');
-            alert("ক্লাউড সিঙ্ক সফল!");
-        } catch(e) { alert("সিঙ্ক এরর! কী (Key) অথবা অনুমতি চেক করুন।"); }
+            let token = sessionStorage.getItem('gdrive_tk');
+            if(!token) { await handleAuth(true); token = sessionStorage.getItem('gdrive_tk'); }
+            if(!token) return;
+            const fileName = 'JBC_Cloud_V54.json';
+            const q = `name = '${fileName}' and trashed = false`;
+            const response = await gapi.client.drive.files.list({ q, fields: 'files(id)' });
+            const file = response.result.files[0];
+            const content = JSON.stringify(createSystemBundle());
+            const boundary = '-------314159265358979323846';
+            const multipartRequestBody =
+                "\r\n--" + boundary + "\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n" + JSON.stringify({ name: fileName, mimeType: 'application/json' }) +
+                "\r\n--" + boundary + "\r\nContent-Type: application/json\r\n\r\n" + content + "\r\n--" + boundary + "--";
+            const path = file ? `/upload/drive/v3/files/${file.id}?uploadType=multipart` : '/upload/drive/v3/files?uploadType=multipart';
+            await gapi.client.request({
+                path, method: file ? 'PATCH' : 'POST',
+                headers: { 'Content-Type': 'multipart/related; boundary=' + boundary },
+                body: multipartRequestBody
+            });
+            localStorage.setItem('jbc_last_sync', new Date().toLocaleString('bn-BD'));
+            document.getElementById('lastSync').innerText = localStorage.getItem('jbc_last_sync');
+            showToast("ক্লাউড সিঙ্ক সফল!", "success");
+        } catch(e) { showToast("সিঙ্ক এরর!", "err"); }
     }
 
-    // --- Core Accounting & UI ---
+    function createSystemBundle() {
+        return { entries, masterCats, periodCatsStore, cumOpenings, historyData, lockedPeriods, off: document.getElementById('offName').innerText, v: APP_VERSION, ts: Date.now(), settings: { passSha: localStorage.getItem(K.PASS_SHA), apiSecure: localStorage.getItem(K.SECURE_API) } };
+    }
+
+    function applySystemBundle(data, isHistoryMerge = false, filterKey = null) {
+        if (isHistoryMerge) {
+            const [year, month, period] = filterKey.split('-').map((v, i) => i < 2 ? parseInt(v) : v);
+            entries = entries.filter(e => {
+                const [ey, em, ed] = e.date.split('-').map(Number);
+                return !(ey === year && em === month && ((period === 'P1' && ed <= 15) || (period === 'P2' && ed > 15)));
+            });
+            entries = [...entries, ...data.entries];
+        } else {
+            entries = data.entries; masterCats = data.masterCats || masterCats; periodCatsStore = data.periodCatsStore || {};
+            cumOpenings = data.cumOpenings || {}; historyData = data.historyData || []; lockedPeriods = data.lockedPeriods || [];
+            if(data.off) document.getElementById('offName').innerText = data.off;
+        }
+        sortEntries(); saveAll(); updateUI(); return true;
+    }
+
+    function sortEntries() { entries.sort((a, b) => (a.date !== b.date) ? a.date.localeCompare(b.date) : a.id - b.id); }
+
     function getPeriodKey() {
         const selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => cb.value);
-        const selP = document.getElementById('filterPeriod').value;
-        if (selM.length !== 1 || selP === "FULL") return null;
-        return `${document.getElementById('filterYear').value}-${selM[0]}-${selP}`;
+        return (selM.length === 1) ? `${document.getElementById('filterYear').value}-${selM[0].padStart(2, '0')}-${document.getElementById('filterPeriod').value}` : null;
     }
 
-    function getActivePayCats() {
-        const key = getPeriodKey();
-        if (!key) {
-            const used = new Set(entries.map(e => e.cat));
-            return Array.from(new Set([...masterCats, ...used])).filter(c => !["জের বি/এফ", "পূর্বের জের", "অফিস হতে প্রাপ্ত", "ব্যাংক হতে উত্তোলন", "পেটিক্যাশ উত্তোলন"].includes(c));
-        }
-        if (!periodCatsStore[key]) { periodCatsStore[key] = [...masterCats]; localStorage.setItem('jbc_period_cats_v46', JSON.stringify(periodCatsStore)); }
-        return periodCatsStore[key];
+    function autoGenDateRange() {
+        const selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => parseInt(cb.value));
+        const selP = document.getElementById('filterPeriod').value, selY = parseInt(document.getElementById('filterYear').value);
+        if (selM.length !== 1) { document.getElementById('dateRangeDisplay').innerText = "একাধিক মাস নির্বাচিত"; return; }
+        const m = selM[0], y = selY, lastDay = new Date(y, m, 0).getDate();
+        const mBn = numToBnStrict(String(m).padStart(2, '0')), yBn = numToBnStrict(y);
+        document.getElementById('dateRangeDisplay').innerText = (selP === 'P1') ? `০১/${mBn}/${yBn} হতে ১৫/${mBn}/${yBn} পর্যন্ত` : (selP === 'P2') ? `১৬/${mBn}/${yBn} হতে ${numToBnStrict(lastDay)}/${mBn}/${yBn} পর্যন্ত` : `০১/${mBn}/${yBn} হতে ${numToBnStrict(lastDay)}/${mBn}/${yBn} পর্যন্ত`;
+        document.getElementById('endDtLabel').innerText = (selP==='P1'?'১৫':numToBnStrict(lastDay)) + '/' + mBn + '/' + yBn;
+    }
+
+    function checkLock() {
+        const key = getPeriodKey(), isLocked = lockedPeriods.includes(key);
+        document.getElementById('lockNotice').style.display = isLocked ? 'block' : 'none';
+        document.getElementById('unlockBtn').style.display = isLocked ? 'inline-block' : 'none';
+        document.getElementById('ledgerForm').style.opacity = isLocked ? '0.5' : '1';
+        document.getElementById('finalSubmitBtn').disabled = isLocked;
+        return isLocked;
+    }
+
+    async function adminUnlock() {
+        const storedSha = localStorage.getItem(K.PASS_SHA) || await hashSHA256("admin");
+        const input = prompt("পাসওয়ার্ড:");
+        if(input && await hashSHA256(input) === storedSha) { lockedPeriods = lockedPeriods.filter(k => k !== getPeriodKey()); saveAll(); updateUI(); }
+    }
+
+    async function changeAdminPass() {
+        const storedSha = localStorage.getItem(K.PASS_SHA) || await hashSHA256("admin");
+        const input = prompt("বর্তমান পাসওয়ার্ড:");
+        if(input && await hashSHA256(input) === storedSha) { const n = prompt("নতুন পাসওয়ার্ড:"); if(n) { localStorage.setItem(K.PASS_SHA, await hashSHA256(n)); } }
+    }
+
+    function saveAll() {
+        localStorage.setItem(K.DB, JSON.stringify(entries)); localStorage.setItem(K.CATS, JSON.stringify(masterCats));
+        localStorage.setItem(K.PCATS, JSON.stringify(periodCatsStore)); localStorage.setItem(K.OPENINGS, JSON.stringify(cumOpenings));
+        localStorage.setItem(K.HISTORY, JSON.stringify(historyData)); localStorage.setItem(K.LOCKS, JSON.stringify(lockedPeriods));
     }
 
     function updateUI() {
-        const h = document.getElementById('tHead'); const b = document.getElementById('tBody'); const f = document.getElementById('tFoot');
+        const key = getPeriodKey(); checkLock();
         const selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => parseInt(cb.value));
-        const selY = parseInt(document.getElementById('filterYear').value);
-        const selP = document.getElementById('filterPeriod').value;
-        const activeCats = getActivePayCats();
-        const searchTerm = (document.getElementById('searchBox').value || '').trim();
-
-        h.innerHTML = `<tr><th colspan="4" class="receipt-head">প্রাপ্তি</th><th colspan="6" class="payment-head">পরিশোধ</th><th colspan="${activeCats.length}" class="breakdown-head">পরিশোধের বিবরণ</th></tr>
-            <tr><th>তারিখ</th><th>প্রাপ্তির বিবরণ</th><th>ব্যাংক</th><th>ক্যাশ</th><th>তারিখ</th><th>পরিশোধের বিবরণ</th><th>ভাউ.</th><th>চেক</th><th>ব্যাংক</th><th>ক্যাশ</th>${activeCats.map(c => `<th>${c}</th>`).join('')}</tr>`;
-
-        let filtered = entries.filter(e => {
+        const selY = parseInt(document.getElementById('filterYear').value), selP = document.getElementById('filterPeriod').value;
+        const entriesInView = entries.filter(e => {
             const dp = e.date.split('-');
-            const mMatch = selM.includes(parseInt(dp[1])), yMatch = parseInt(dp[0]) === selY;
-            let pMatch = (selP==='FULL') || (selP==='P1' && parseInt(dp[2])<=15) || (selP==='P2' && parseInt(dp[2])>15);
-            let sMatch = !searchTerm || (e.desc && e.desc.includes(searchTerm)) || (e.cat && e.cat.includes(searchTerm)) || (e.vou && String(e.vou).includes(searchTerm)) || (e.chk && String(e.chk).includes(searchTerm));
-            return mMatch && yMatch && pMatch && sMatch;
+            return selM.includes(parseInt(dp[1])) && parseInt(dp[0]) === selY && ((selP === 'FULL') || (selP === 'P1' && parseInt(dp[2]) <= 15) || (selP === 'P2' && parseInt(dp[2]) > 15));
         });
-
-        // Feature 3: Merge Logic (Voucher + Cheque) — সাধারণ খাতভিত্তিক পরিশোধ একত্রে মার্জ হয়।
-        // পেটিক্যাশ উত্তোলন (Petty Cash Withdrawal) কখনও অন্য খাতের সাথে মিশবে না — প্রতিটি এন্ট্রি সবসময় নিজস্ব পৃথক লাইনে বসবে, তবে তারিখ ও ভাউচার নম্বর অনুযায়ী সঠিক ক্রমেই বসবে।
-        let pMap = {}; let paymentSeq = [];
+        const usedCatsInView = [...new Set(entriesInView.filter(e => e.type === 'payment' && e.cat !== 'পেটিক্যাশ উত্তোলন').map(e => e.cat))];
+        const currentActiveCats = (key && periodCatsStore[key]) ? periodCatsStore[key] : masterCats;
+        const activeCats = [...new Set([...currentActiveCats, ...usedCatsInView])];
+        const search = (document.getElementById('searchBox').value || '').trim().toLowerCase();
+        renderCatChips(currentActiveCats);
+        let filtered = entriesInView.filter(e => !search || e.desc.toLowerCase().includes(search) || e.cat.toLowerCase().includes(search));
+        let pSeq = []; let pMap = {};
         filtered.filter(e => e.type==='payment').forEach(e => {
-            if(e.cat === "পেটিক্যাশ উত্তোলন") { paymentSeq.push({ ...e, isPetty: true }); return; }
-            let k = `${e.date}|${e.vou}|${e.chk}`;
-            if(!pMap[k]) { pMap[k] = { ...e, breakdown: {}, bankTotal: 0, cashTotal: 0, contra: 0, ids: [e.id], isPetty: false }; paymentSeq.push(pMap[k]); }
-            else pMap[k].ids.push(e.id);
-            pMap[k].breakdown[e.cat] = (pMap[k].breakdown[e.cat] || 0) + e.amt; if(e.mode === 'bank') pMap[k].bankTotal += e.amt; else pMap[k].cashTotal += e.amt;
+            if(e.cat === "পেটিক্যাশ উত্তোলন") pSeq.push({ ...e, isPetty: true });
+            else {
+                let k = `${e.date}|${e.vou}|${e.chk}`;
+                if(!pMap[k]) { pMap[k] = { ...e, breakdown: {}, bT: 0, cT: 0, ids: [e.id], isPetty: false }; pSeq.push(pMap[k]); }
+                else pMap[k].ids.push(e.id);
+                pMap[k].breakdown[e.cat] = (pMap[k].breakdown[e.cat] || 0) + e.amt; (e.mode === 'bank') ? pMap[k].bT += e.amt : pMap[k].cT += e.amt;
+            }
         });
-        paymentSeq.sort((a,b) => new Date(a.date) - new Date(b.date) || (toEn(a.vou) - toEn(b.vou)) || String(a.vou).localeCompare(String(b.vou)));
-
-        let rMap = {}; let rProcessed = [];
-        filtered.filter(e => e.type==='receipt').sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(e => {
+        let rSeq = []; let rMap = {};
+        filtered.filter(e => e.type==='receipt').forEach(e => {
             let k = `${e.date}|${e.desc}`;
-            if(!rMap[k]) { rMap[k] = { ...e, ab: 0, ac: 0, ids: [] }; rProcessed.push(rMap[k]); }
+            if(!rMap[k]) { rMap[k] = { ...e, ab: 0, ac: 0, ids: [] }; rSeq.push(rMap[k]); }
             (e.mode === 'bank') ? rMap[k].ab += e.amt : rMap[k].ac += e.amt; rMap[k].ids.push(e.id);
         });
-
-        b.innerHTML = ''; let s = { rb:0, rc:0, pb:0, pc:0 }; let cs = new Array(activeCats.length).fill(0);
-        let totalContra = 0; let rIdx = 0, pIdx = 0;
-
-        while (pIdx < paymentSeq.length || rIdx < rProcessed.length) {
-            let p = paymentSeq[pIdx]; let r = null; let row = "<tr>";
-            if (p && p.isPetty) {
+        document.getElementById('tHead').innerHTML = `<tr><th colspan="4" class="receipt-head">প্রাপ্তি</th><th colspan="6" class="payment-head">পরিশোধ</th><th colspan="${activeCats.length}" class="breakdown-head">পরিশোধের বিবরণ</th><th class="no-print">Action</th></tr><tr><th>তারিখ</th><th>বিবরণ</th><th>ব্যাংক</th><th>ক্যাশ</th><th>তারিখ</th><th>বিবরণ</th><th>ভাউ.</th><th>চেক</th><th>ব্যাংক</th><th>ক্যাশ</th>${activeCats.map(c => `<th>${c}</th>`).join('')}<th class="no-print"></th></tr>`;
+        let bHtml = ''; let s = { rb:0, rc:0, pb:0, pc:0 }; let cs = new Array(activeCats.length).fill(0);
+        let rI = 0, pI = 0, tPetty = 0; const isLocked = checkLock();
+        while (pI < pSeq.length || rI < rSeq.length) {
+            let p = pSeq[pI], r = rSeq[rI], row = "<tr>";
+            if (p && p.isPetty && (!r || p.id < r.ids[0])) {
                 row += `<td class="receipt-head"></td><td class="receipt-head"></td><td class="amt receipt-head"></td><td class="amt receipt-head">${toBn(p.amt)}</td>`;
-                s.rc += p.amt;
+                s.rc += p.amt; tPetty += p.amt;
+                row += `<td class="payment-head">${formatDateToBn(p.date)}</td><td class="payment-head">${p.desc}</td><td class="payment-head">${p.vou}</td><td class="payment-head">${p.chk}</td><td class="amt payment-head">${toBn(p.amt)}</td><td class="amt payment-head"></td>`;
+                s.pb += p.amt; activeCats.forEach(() => row += `<td class="breakdown-head"></td>`);
+                row += `<td class="no-print">${isLocked?'🔒':`<span style="color:blue;cursor:pointer" onclick="editEntry(${p.id})">✎</span> <span style="color:red;cursor:pointer" onclick="delEntry('${p.id}')">×</span>`}</td>`; pI++;
             } else {
-                r = rProcessed[rIdx];
-                if (r) { row += `<td class="receipt-head">${formatDateToBn(r.date)}</td><td class="receipt-head">${r.desc}</td><td class="amt receipt-head">${r.ab>0?toBn(r.ab):''}</td><td class="amt receipt-head">${r.ac>0?toBn(r.ac):''}</td>`; s.rb += r.ab; s.rc += r.ac; rIdx++; }
-                else row += `<td></td><td></td><td></td><td></td>`;
+                if (r) { row += `<td class="receipt-head">${formatDateToBn(r.date)}</td><td class="receipt-head">${r.desc}</td><td class="amt receipt-head">${r.ab>0?toBn(r.ab):''}</td><td class="amt receipt-head">${r.ac>0?toBn(r.ac):''}</td>`; s.rb += r.ab; s.rc += r.ac; rI++; } else row += `<td></td><td></td><td></td><td></td>`;
+                if (p && !p.isPetty) {
+                    row += `<td class="payment-head">${formatDateToBn(p.date)}</td><td class="payment-head">${p.desc}</td><td class="payment-head">${p.vou}</td><td class="payment-head">${p.chk}</td><td class="amt payment-head">${p.bT>0?toBn(p.bT):''}</td><td class="amt payment-head">${p.cT>0?toBn(p.cT):''}</td>`;
+                    s.pb += p.bT; s.pc += p.cT; activeCats.forEach((c, idx) => { let val = p.breakdown[c] || 0; row += `<td class="breakdown-head">${val>0?toBn(val):''}</td>`; cs[idx] += val; });
+                    row += `<td class="no-print">${isLocked?'🔒':`<span style="color:blue;cursor:pointer" onclick="editEntry(${p.ids[0]})">✎</span> <span style="color:red;cursor:pointer" onclick="delEntry('${p.ids.join(',')}')">×</span>`}</td>`; pI++;
+                } else { row += `<td></td><td></td><td></td><td></td><td></td><td></td>`; activeCats.forEach(() => row += `<td></td>`); row += `<td class="no-print"></td>`; }
             }
-            if (p) {
-                if (p.isPetty) {
-                    row += `<td class="payment-head">${formatDateToBn(p.date)}</td><td class="payment-head">${p.desc}</td><td class="payment-head">${p.vou}</td><td class="payment-head">${p.chk}</td><td class="amt payment-head">${toBn(p.amt)}</td><td class="amt payment-head"></td>`;
-                    s.pb += p.amt; totalContra += p.amt;
-                    activeCats.forEach(() => row += `<td class="breakdown-head"></td>`);
-                    row += `<td class="no-print"><div class="action-btns"><span class="edit-btn-row" onclick="editEntry(${p.id})">✎</span><button class="del-btn-row" onclick="del('${p.id}')">×</button></div></td>`;
-                } else {
-                    row += `<td class="payment-head">${formatDateToBn(p.date)}</td><td class="payment-head">${p.desc}</td><td class="payment-head">${p.vou}</td><td class="payment-head">${p.chk}</td><td class="amt payment-head">${p.bankTotal>0?toBn(p.bankTotal):''}</td><td class="amt payment-head">${p.cashTotal>0?toBn(p.cashTotal):''}</td>`;
-                    s.pb += p.bankTotal; s.pc += p.cashTotal; totalContra += p.contra;
-                    activeCats.forEach((c, idx) => { let val = p.breakdown[c] || 0; row += `<td class="breakdown-head">${val>0?toBn(val):''}</td>`; cs[idx] += val; });
-                    row += `<td class="no-print"><div class="action-btns"><span class="edit-btn-row" onclick="editEntry(${p.ids[0]})">✎</span><button class="del-btn-row" onclick="del('${p.ids.join(',')}')">×</button></div></td>`;
-                }
-                pIdx++;
-            } else {
-                row += `<td></td><td></td><td></td><td></td><td></td><td></td>`; activeCats.forEach(() => row += `<td></td>`); row += `<td class="no-print">${r ? `<div class="action-btns"><span class="edit-btn-row" onclick="editEntry(${r.ids[0]})">✎</span><button class="del-btn-row" onclick="del('${r.ids.join(',')}')">×</button></div>` : ''}</td>`;
-            }
-            b.innerHTML += row + "</tr>";
+            bHtml += row + "</tr>";
         }
-
-        f.innerHTML = `<tr style="background:#eee"><td></td><td>মোট:</td><td class="amt">${toBn(s.rb)}</td><td class="amt">${toBn(s.rc)}</td><td></td><td>মোট:</td><td></td><td></td><td class="amt">${toBn(s.pb)}</td><td class="amt">${toBn(s.pc)}</td>${cs.map(v => `<td class="amt">${v>0?toBn(v):''}</td>`).join('')}</tr>`;
-
-        // Validation (Feature 6)
-        const breakdownT = cs.reduce((a,b)=>a+b, 0);
-        const equation = (breakdownT + totalContra - s.pb);
-        document.getElementById('validationWarning').style.display = (Math.abs(equation - s.pc) > 0.01) ? "block" : "none";
-        document.getElementById('validationWarning').innerText = `⚠️ হিসাব ভুল হয়েছে! গরমিল: ${toBn(Math.abs(equation-s.pc))}`;
-
+        document.getElementById('tBody').innerHTML = bHtml;
+        document.getElementById('tFoot').innerHTML = `<tr style="background:#f1f5f9"><td></td><td>মোট:</td><td class="amt">${toBn(s.rb)}</td><td class="amt">${toBn(s.rc)}</td><td></td><td>মোট:</td><td></td><td></td><td class="amt">${toBn(s.pb)}</td><td class="amt">${toBn(s.pc)}</td>${cs.map(v => `<td class="amt">${v>0?toBn(v):''}</td>`).join('')}<td class="no-print"></td></tr>`;
         document.getElementById('sumRB').innerText = toBn(s.rb); document.getElementById('sumRC').innerText = toBn(s.rc);
         document.getElementById('sumPB').innerText = toBn(s.pb); document.getElementById('sumPC').innerText = toBn(s.pc);
         document.getElementById('jerB').innerText = toBn(s.rb - s.pb); document.getElementById('jerC').innerText = toBn(s.rc - s.pc);
-        document.getElementById('pCash').innerText = toBn(s.pc); document.getElementById('pBank').innerText = toBn(s.pb);
-        
-        const pbV = toEn(document.getElementById('pb').value), pcV = toEn(document.getElementById('pc').value);
-        document.getElementById('cumBText').innerText = `${toBn(pbV)} + ${toBn(s.pb)} = ${toBn(pbV + s.pb)}`;
-        document.getElementById('cumCText').innerText = `${toBn(pcV)} + ${toBn(s.pc)} = ${toBn(pcV + s.pc)}`;
-
-        // ড্যাশবোর্ড - সর্বমোট ব্যাংক/ক্যাশ ব্যালেন্স (সব এন্ট্রি অনুযায়ী)
-        let gB = 0, gC = 0;
-        entries.forEach(e => {
-            if(e.type==='receipt') (e.mode==='bank')?gB+=e.amt:gC+=e.amt;
-            else { if(e.cat==='পেটিক্যাশ উত্তোলন') { gB-=e.amt; gC+=e.amt; } else (e.mode==='bank')?gB-=e.amt:gC-=e.amt; }
-        });
+        const pbVal = toEn(document.getElementById('pb').value), pcVal = toEn(document.getElementById('pc').value);
+        document.getElementById('cumBText').innerText = `${toBn(pbVal)} + ${toBn(s.pb)} = ${toBn(pbVal + s.pb)}`;
+        document.getElementById('cumCText').innerText = `${toBn(pcVal)} + ${toBn(s.pc)} = ${toBn(pcVal + s.pc)}`;
+        let gB = 0, gC = 0; entries.forEach(e => { if(e.type==='receipt') (e.mode==='bank')?gB+=e.amt:gC+=e.amt; else { if(e.cat==='পেটিক্যাশ উত্তোলন') { gB-=e.amt; gC+=e.amt; } else (e.mode==='bank')?gB-=e.amt:gC-=e.amt; } });
         document.getElementById('dashBank').innerText = toBn(gB); document.getElementById('dashCash').innerText = toBn(gC);
-
-        syncFooterDate();
+        reconcile(s.pc, tPetty, s.pb, cs.reduce((a,c)=>a+c, 0));
     }
 
-    // --- Utility Functions ---
-    function moveCat(idx, dir) { const key = getPeriodKey(); const list = periodCatsStore[key]; if (dir === -1 && idx > 0) [list[idx], list[idx-1]] = [list[idx-1], list[idx]]; else if (dir === 1 && idx < list.length-1) [list[idx], list[idx+1]] = [list[idx+1], list[idx]]; localStorage.setItem('jbc_period_cats_v46', JSON.stringify(periodCatsStore)); refreshUI(); }
-    function renameCat(idx) { const key = getPeriodKey(); let old = periodCatsStore[key][idx]; let n = prompt("নতুন নাম:", old); if (n && n.trim() !== "" && n !== old) { entries.forEach(e => { if(e.cat === old) e.cat = n.trim(); }); periodCatsStore[key][idx] = n.trim(); localStorage.setItem('jbc_period_cats_v46', JSON.stringify(periodCatsStore)); localStorage.setItem('jbc_db_v46', JSON.stringify(entries)); refreshUI(); } }
-    function del(ids) { if(confirm("মুছবেন?")) { let idArr = ids.split(',').map(Number); entries = entries.filter(e => !idArr.includes(e.id)); localStorage.setItem('jbc_db_v46', JSON.stringify(entries)); updateUI(); } }
-    function toggleDropdown() { document.getElementById("monthDropdown").classList.toggle("show"); }
-    function renderMonthDropdown() { const c = document.getElementById('monthDropdown'); const cur = new Date().getMonth()+1; monthNames.forEach((n, i) => { const v = i+1; const l = document.createElement('label'); l.innerHTML = `<input type="checkbox" class="month-check" value="${v}" ${v === cur ? 'checked' : ''} onchange="updateSelectedText(); autoCalcPrevExpenses(); refreshUI();"> ${n}`; c.appendChild(l); }); updateSelectedText(); }
-    function updateSelectedText() { const checks = document.querySelectorAll('.month-check:checked'); document.getElementById('selectedMonthText').innerText = checks.length === 0 ? "মাস বেছে নিন" : (checks.length === 12 ? "সবগুলো মাস" : checks.length + " টি নির্বাচিত"); }
-    function autoCalcPrevExpenses() { const selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => parseInt(cb.value)); if (selM.length === 0) return; const p = document.getElementById('filterPeriod').value; const y = parseInt(document.getElementById('filterYear').value); let border = (p === "P2") ? new Date(y, Math.min(...selM)-1, 16) : new Date(y, Math.min(...selM)-1, 1); let pb = 0, pc = 0; entries.forEach(e => { let ed = new Date(e.date); if (e.type === 'payment' && ed < border && ed.getFullYear() === y) { if (e.cat === "পেটিক্যাশ উত্তোলন") pb += e.amt; else (e.mode === 'bank') ? pb += e.amt : pc += e.amt; } }); document.getElementById('pb').value = toBn(pb).replace(".০০",""); document.getElementById('pc').value = toBn(pc).replace(".০০",""); }
-    function refreshDropdowns() { const t = document.getElementById('type').value; const s = document.getElementById('catSelect'); const active = getActivePayCats(); let opts = (t === 'payment') ? `<option value="পেটিক্যাশ উত্তোলন">পেটিক্যাশ উত্তোলন</option>` + active.map(c => `<option value="${c}">${c}</option>`).join('') : ["পূর্বের জের", "জের বি/এফ", "অফিস হতে প্রাপ্ত", "ব্যাংক হতে উত্তোলন"].map(c => `<option value="${c}">${c}</option>`).join(''); s.innerHTML = opts + `<option value="ADD_NEW" style="color:blue;">+ নতুন খাত</option>`; }
-    function toggleInputs() { const isR = document.getElementById('type').value === 'receipt'; document.getElementById('vou').disabled = isR; document.getElementById('chk').disabled = isR; }
-    function handleDropdownAction() { if (document.getElementById('catSelect').value === "ADD_NEW") { const n = prompt("নতুন খাত:"); const key = getPeriodKey(); if (n && key) { periodCatsStore[key].push(n.trim()); localStorage.setItem('jbc_period_cats_v46', JSON.stringify(periodCatsStore)); refreshUI(); } } }
-    function saveHeader() { localStorage.setItem('jbc_off_v46', document.getElementById('offName').innerText); localStorage.setItem('jbc_ran_v46', document.getElementById('dateRange').innerText); updateUI(); }
-    function syncFooterDate() { let r = document.getElementById('dateRange').innerText.match(/([\d০-৯]{1,2}[-/.\\][\d০-৯]{1,2}[-/.\\][\d০-৯]{2,4})/g); let end = r ? r[r.length-1] : "..."; document.getElementById('endDt1').innerText = end; document.getElementById('endDt2').innerText = end; }
-    function backupDBLocal() { const b = new Blob([JSON.stringify({entries, masterCats, periodCatsStore})], {type: 'application/json'}); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `JBC_Manual_Backup.json`; a.click(); }
-    function restoreDB(ev) { const r = new FileReader(); r.onload = (e) => { try { const d = JSON.parse(e.target.result); entries = d.entries || []; masterCats = d.masterCats || masterCats; periodCatsStore = d.periodCatsStore || {}; localStorage.setItem('jbc_db_v46', JSON.stringify(entries)); localStorage.setItem('jbc_pay_v46', JSON.stringify(masterCats)); localStorage.setItem('jbc_period_cats_v46', JSON.stringify(periodCatsStore)); location.reload(); } catch(err) { alert("ফাইলটি সঠিক নয়!"); } }; r.readAsText(ev.target.files[0]); }
-    function exportExcel() { const summaryHtml = document.querySelector('.footer-summary').innerHTML; const b = new Blob(['\ufeff', document.getElementById('mainTable').outerHTML, summaryHtml], { type: 'application/vnd.ms-excel' }); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `JBC_Report.xls`; a.click(); }
+    function reconcile(tC, tP, tB, tSum) {
+        const ok = Math.abs((tSum + tP) - tB - tC) < 0.01, rEl = document.getElementById('reconStatus');
+        rEl.className = `recon-box ${ok ? 'status-ok' : 'status-err'} no-print`;
+        rEl.innerHTML = ok ? "✅ হিসাব সঠিক আছে" : "⚠️ হিসাব গরমিল!"; return ok;
+    }
 
-    function finalizePeriod() {
-        const selM = Array.from(document.querySelectorAll('.month-check:checked')); if (selM.length !== 1) { alert("একটি মাস সিলেক্ট করুন।"); return; }
-        const jB = toEn(document.getElementById('jerB').innerText), jC = toEn(document.getElementById('jerC').innerText);
-        const p = document.getElementById('filterPeriod').value, y = document.getElementById('filterYear').value, m = selM[0].value;
-        let nD = (p === "P1") ? `${y}-${String(m).padStart(2, '0')}-16` : (m == 12 ? `${parseInt(y)+1}-01-01` : `${y}-${String(parseInt(m)+1).padStart(2, '0')}-01`);
-        entries = entries.filter(e => !(e.date === nD && e.cat === "জের বি/এফ"));
-        if(jB !== 0) entries.push({ id: Date.now()+1, date: nD, type: 'receipt', desc: "জের বি/এফ", cat: "জের বি/এফ", mode: 'bank', amt: jB, vou: '-', chk: '-' });
-        if(jC !== 0) entries.push({ id: Date.now()+2, date: nD, type: 'receipt', desc: "জের বি/এফ", cat: "জের বি/এফ", mode: 'cash', amt: jC, vou: '-', chk: '-' });
-        localStorage.setItem('jbc_db_v46', JSON.stringify(entries));
-        if(localStorage.getItem('gdrive_tk')) syncWithCloud();
-        alert("ফাইনাল সাবমিট সম্পন্ন!");
-        if(p === "P1") document.getElementById('filterPeriod').value = "P2";
-        autoCalcPrevExpenses();
-        updateUI();
+    async function finalSubmitWorkflow() {
+        const key = getPeriodKey(); if(!key || key.endsWith('FULL')) return;
+        const pb = toEn(document.getElementById('pb').value), pc = toEn(document.getElementById('pc').value);
+        const spb = toEn(document.getElementById('sumPB').innerText), spc = toEn(document.getElementById('sumPC').innerText);
+        showModal("ফাইনাল সাবমিট", "নিশ্চিত?", async () => {
+            pushToSafetyStack();
+            const [y, m, p] = key.split('-').map((v, i) => i < 2 ? parseInt(v) : v);
+            const currentPeriodEntries = entries.filter(e => {
+                const [ey, em, ed] = e.date.split('-').map(Number);
+                return ey === y && em === m && ((p === 'P1' && ed <= 15) || (p === 'P2' && ed > 15));
+            });
+            historyData.push({ key, d: new Date().toLocaleString('bn-BD'), deleted: false, entries: currentPeriodEntries, summary: { jB: document.getElementById('jerB').innerText, jC: document.getElementById('jerC').innerText, cB: pb + spb, cC: pc + spc } });
+            let nD = (p === 'P1') ? `${y}-${String(m).padStart(2, '0')}-16` : (m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`);
+            entries = entries.filter(e => !(e.date === nD && e.desc === "জের বি/এফ"));
+            const jB = toEn(document.getElementById('jerB').innerText), jC = toEn(document.getElementById('jerC').innerText);
+            if(jB !== 0) entries.push({ id: Date.now()+1, date: nD, type: 'receipt', desc: "জের বি/এফ", cat: "জের বি/এফ", mode: 'bank', amt: jB, vou: '-', chk: '-' });
+            if(jC !== 0) entries.push({ id: Date.now()+2, date: nD, type: 'receipt', desc: "জের বি/এফ", cat: "জের বি/এফ", mode: 'cash', amt: jC, vou: '-', chk: '-' });
+            cumOpenings[`${nD.split('-')[0]}-${nD.split('-')[1]}-${p === 'P1' ? 'P2' : 'P1'}`] = { bank: pb + spb, cash: pc + spc, isManual: false };
+            lockedPeriods.push(key); saveAll(); updateUI(); await syncWithCloud();
+        });
+    }
+
+    document.getElementById('ledgerForm').addEventListener('submit', (e) => {
+        e.preventDefault(); if(checkLock()) return;
+        const dt = document.getElementById('date').value, [yI, mI, dI] = dt.split('-').map(Number), selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => parseInt(cb.value));
+        const selY = parseInt(document.getElementById('filterYear').value), selP = document.getElementById('filterPeriod').value;
+        if (selM.length !== 1 || yI !== selY || mI !== selM[0] || (selP === 'P1' && dI > 15) || (selP === 'P2' && dI < 16)) { showToast("তারিখ পিরিয়ডের বাইরে!", "err"); return; }
+        const data = { id: document.getElementById('editId').value ? parseInt(document.getElementById('editId').value) : Date.now(), date: dt, type: document.getElementById('type').value, desc: document.getElementById('desc').value, cat: document.getElementById('catSelect').value, vou: document.getElementById('vou').value || '-', chk: document.getElementById('chk').value || '-', mode: document.getElementById('mode').value, amt: toEn(document.getElementById('amtInp').value) };
+        if (document.getElementById('editId').value) entries = entries.map(x => x.id === data.id ? data : x); else entries.push(data);
+        sortEntries(); saveAll(); cancelEdit(); updateUI();
+    });
+
+    function renameCat(i) {
+        const key = getPeriodKey();
+        let list = (key && periodCatsStore[key]) ? periodCatsStore[key] : masterCats;
+        const oldName = list[i];
+        const newName = prompt("নতুন নাম দিন:", oldName);
+        if (newName && newName.trim() !== "" && newName !== oldName) {
+            if (list.includes(newName)) { showToast("নামটি আছে!", "err"); return; }
+            pushToSafetyStack();
+            list[i] = newName.trim();
+            if (!key) masterCats[i] = newName.trim();
+            saveAll(); updateUI(); showToast("রিনেম সফল!", "success");
+        }
+    }
+
+    function renderCatChips(cats) {
+        document.getElementById('catOrderList').innerHTML = cats.map((cat, i) => `<div class="cat-chip"><span onclick="renameCat(${i})" style="cursor:pointer">${cat}</span><b style="cursor:pointer" onclick="moveCat(${i},-1)">❮</b><b style="cursor:pointer" onclick="moveCat(${i},1)">❯</b><b style="color:red;cursor:pointer" onclick="deleteCat(${i})">×</b></div>`).join('') + `<button onclick="addCat()">+</button>`;
+    }
+
+    function addCat() { let n = prompt("নাম:"); if(n && n.trim() !== "") { const k = getPeriodKey(); if(k && !periodCatsStore[k]) periodCatsStore[k] = [...masterCats]; (k ? periodCatsStore[k] : masterCats).push(n.trim()); saveAll(); updateUI(); } }
+    function moveCat(i, d) { const k = getPeriodKey(); let l = (k && periodCatsStore[k]) ? periodCatsStore[k] : masterCats; if((i===0 && d===-1) || (i===l.length-1 && d===1)) return; [l[i], l[i+d]] = [l[i+d], l[i]]; saveAll(); updateUI(); }
+    function deleteCat(i) { if(confirm("ডিলিট করবেন?")) { const k = getPeriodKey(); let l = (k && periodCatsStore[k]) ? periodCatsStore[k] : masterCats; l.splice(i, 1); saveAll(); updateUI(); } }
+
+    function openHistory() {
+        document.getElementById('historyModal').style.display = 'block';
+        document.getElementById('historyList').innerHTML = historyData.map((h, i) => h.deleted ? '' : `<div style="border:1px solid #ccc;padding:10px;margin-bottom:5px;border-radius:5px;"><b>পিরিয়ড: ${h.key}</b><button onclick="restoreHistoryMerge(${i})" style="float:right;background:var(--success);color:white;padding:4px 8px;">Merge</button></div>`).join('');
+    }
+    function closeHistory() { document.getElementById('historyModal').style.display = 'none'; }
+    function restoreHistoryMerge(i) { pushToSafetyStack(); applySystemBundle(historyData[i], true, historyData[i].key); closeHistory(); }
+    function handleRestore(ev) { const reader = new FileReader(); reader.onload = (e) => { try { pushToSafetyStack(); if(applySystemBundle(JSON.parse(e.target.result))) showToast("সফল!", "success"); } catch(err) {} }; reader.readAsText(ev.target.files[0]); }
+    function createLocalBackup() { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(createSystemBundle())], {type: 'application/json'})); a.download = `JBC_Backup_${Date.now()}.json`; a.click(); }
+
+    function exportToExcelAdvanced() {
+        const offName = document.getElementById('offName').innerText;
+        const dateRange = document.getElementById('dateRangeDisplay').innerText;
+        const footerSnapshot = document.getElementById('footerSnapshot').cloneNode(true);
+        
+        const tableClone = document.getElementById('mainTable').cloneNode(true);
+        const rows = tableClone.rows;
+        for (let i = 0; i < rows.length; i++) {
+            rows[i].deleteCell(-1); 
+        }
+
+        const head = tableClone.querySelector('thead');
+        const colCount = head.rows[1].cells.length; 
+
+        const excelContent = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+            <meta charset='utf-8'>
+            <style>
+                table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', Tahoma, sans-serif; }
+                th, td { border: 1pt solid black; padding: 5px; text-align: center; vertical-align: middle; mso-number-format: "\\@"; font-size: 10pt; font-weight: bold; }
+                .amt { text-align: right; mso-number-format: "\\@"; }
+                .receipt-head { background-color: #fcc100 !important; }
+                .payment-head { background-color: #f19597 !important; }
+                .breakdown-head { background-color: #a0c4df !important; }
+                h1, h3, p { text-align: center; margin: 5px; }
+                .title-cell { font-size: 16pt; font-weight: bold; border: none; }
+                .office-cell { font-size: 14pt; font-weight: bold; border: none; }
+                .range-cell { font-size: 11pt; border: none; }
+                .no-print { display: none !important; }
+                .summary-box th, .summary-box td { border: 1pt solid black; }
+                .cumulative-line { border-left: 4px solid #2563eb; padding-left: 10px; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <table>
+                <tr><td colspan="${colCount}" class="title-cell">জীবন বীমা কর্পোরেশন</td></tr>
+                <tr><td colspan="${colCount}" class="office-cell">${offName}</td></tr>
+                <tr><td colspan="${colCount}" class="range-cell"><b>${dateRange}</b></td></tr>
+                <tr><td colspan="${colCount}" style="border:none;">&nbsp;</td></tr>
+            </table>
+            ${tableClone.outerHTML}
+            <br>
+            <div style="margin-top: 20px;">
+                ${footerSnapshot.innerHTML}
+            </div>
+        </body>
+        </html>`;
+
+        const blob = new Blob(['\ufeff', excelContent], { type: 'application/vnd.ms-excel' });
+        const link = document.createElement("a");
+        const fileName = `JBC_Report_${offName}.xls`;
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        link.click();
+    }
+
+    function exportToWordAdvanced() {
+        const offName = document.getElementById('offName').innerText;
+        const dateRange = document.getElementById('dateRangeDisplay').innerText;
+        
+        const tableClone = document.getElementById('mainTable').cloneNode(true);
+        const rows = tableClone.rows;
+        for (let i = 0; i < rows.length; i++) {
+            rows[i].deleteCell(-1); 
+        }
+        
+        const footerHtml = document.getElementById('footerSnapshot').innerHTML;
+        const head = tableClone.querySelector('thead');
+        const colCount = head.rows[1].cells.length;
+        
+        let fontSize = "10pt";
+        if (colCount > 25) fontSize = "7pt";
+        else if (colCount > 18) fontSize = "8.5pt";
+        else if (colCount > 12) fontSize = "9.5pt";
+
+        const content = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+            <meta charset='utf-8'>
+            <style>
+                @page Section1 {
+                    size: 14.0in 8.5in; 
+                    mso-page-orientation: landscape;
+                    margin: 0.4in;
+                }
+                div.Section1 { page: Section1; }
+                table { border-collapse: collapse; width: 100%; font-size: ${fontSize}; }
+                th, td { border: 1px solid black; padding: 3px; text-align: center; font-weight: bold; }
+                .amt { text-align: right; }
+                .receipt-head { background-color: #fcc100 !important; }
+                .payment-head { background-color: #f19597 !important; }
+                .breakdown-head { background-color: #a0c4df !important; }
+                .no-print { display: none !important; }
+                h1, h3, p { text-align: center; margin: 3px; }
+                thead { display: table-header-group; }
+            </style>
+        </head>
+        <body>
+            <div class="Section1">
+                <h1>জীবন বীমা কর্পোরেশন</h1>
+                <h3>${offName}</h3>
+                <p><b>${dateRange}</b></p>
+                ${tableClone.outerHTML}
+                <div style="margin-top:20px;">${footerHtml}</div>
+            </div>
+        </body>
+        </html>`;
+
+        const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `JBC_Report_${offName}.doc`;
+        link.click();
+    }
+
+    function toggleDropdown() { document.getElementById("monthDropdown").classList.toggle("show"); }
+    function renderMonthDropdown() {
+        const c = document.getElementById('monthDropdown'), cur = new Date().getMonth()+1;
+        monthNames.forEach((n, i) => { const l = document.createElement('label'); l.style.display="block"; l.innerHTML = `<input type="checkbox" class="month-check" value="${i+1}" ${i+1 === cur ? 'checked' : ''} onchange="updateSelectedText(); autoGenDateRange(); autoCalcOpeningExpense(); updateUI();"> ${n}`; c.appendChild(l); }); updateSelectedText();
+    }
+    function updateSelectedText() { const checks = document.querySelectorAll('.month-check:checked'); document.getElementById('selectedMonthText').innerText = checks.length === 0 ? "মাস বেছে নিন" : (checks.length === 12 ? "সবগুলো মাস" : checks.length + " টি নির্বাচিত"); }
+
+    function refreshDropdowns() {
+        const t = document.getElementById('type').value, s = document.getElementById('catSelect');
+        const active = (getPeriodKey() && periodCatsStore[getPeriodKey()]) ? periodCatsStore[getPeriodKey()] : masterCats;
+        s.innerHTML = (t === 'payment') ? `<option value="পেটিক্যাশ উত্তোলন">পেটিক্যাশ উত্তোলন</option>` + active.map(c => `<option value="${c}">${c}</option>`).join('') : ["জের বি/এফ", "অফিস হতে প্রাপ্ত", "ব্যাংক হতে উত্তোলন"].map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function autoCalcOpeningExpense() {
+        const key = getPeriodKey(); if (!key) return;
+        if (cumOpenings[key] && cumOpenings[key].isManual) { document.getElementById('pb').value = numToBnStrict(String(cumOpenings[key].bank)); document.getElementById('pc').value = numToBnStrict(String(cumOpenings[key].cash)); return; }
+        const [y, m, p] = key.split('-').map((v, i) => i < 2 ? parseInt(v) : v);
+        let pK = (p === 'P2') ? `${y}-${String(m).padStart(2,'0')}-P1` : (m === 1) ? `${y-1}-12-P2` : `${y}-${String(m-1).padStart(2,'0')}-P2`;
+        const snap = historyData.find(h => h.key === pK && !h.deleted);
+        if (snap) { document.getElementById('pb').value = numToBnStrict(String(snap.summary.cB)); document.getElementById('pc').value = numToBnStrict(String(snap.summary.cC)); } else { document.getElementById('pb').value = "০"; document.getElementById('pc').value = "০"; }
     }
 
     function editEntry(id) {
-        const e = entries.find(x => x.id === id); if (!e) return;
-        document.getElementById('editId').value = e.id; document.getElementById('date').value = e.date;
-        document.getElementById('type').value = e.type; refreshDropdowns();
-        document.getElementById('desc').value = e.desc; document.getElementById('catSelect').value = e.cat;
-        document.getElementById('vou').value = e.vou==='-'?'':e.vou; document.getElementById('chk').value = e.chk==='-'?'':e.chk;
-        document.getElementById('mode').value = e.mode; document.getElementById('amtInp').value = e.amt;
-        toggleInputs();
-        document.getElementById('submitBtn').innerText = "আপডেট করুন"; document.getElementById('cancelBtn').style.display = "inline-block";
-        document.getElementById('ledgerForm').scrollIntoView({behavior:'smooth'});
+        if(checkLock()) return; const e = entries.find(x => x.id === id); if(!e) return;
+        document.getElementById('editId').value = e.id; document.getElementById('date').value = e.date; document.getElementById('type').value = e.type; refreshDropdowns();
+        document.getElementById('desc').value = e.desc; document.getElementById('catSelect').value = e.cat; document.getElementById('vou').value = e.vou==='-'?'':e.vou;
+        document.getElementById('chk').value = e.chk==='-'?'':e.chk; document.getElementById('mode').value = e.mode; document.getElementById('amtInp').value = numToBnStrict(String(e.amt));
+        document.getElementById('submitBtn').innerText = "আপডেট"; document.getElementById('cancelBtn').style.display = "inline-block"; window.scrollTo({top:0, behavior:'smooth'});
+    }
+    function delEntry(ids) { if(checkLock()) return; showModal("মুছে ফেলুন", "নিশ্চিত?", () => { let idArr = ids.split(',').map(Number); entries = entries.filter(e => !idArr.includes(e.id)); saveAll(); updateUI(); }); }
+    function cancelEdit() { document.getElementById('ledgerForm').reset(); document.getElementById('editId').value = ""; document.getElementById('submitBtn').innerText = "এন্ট্রি করুন"; document.getElementById('cancelBtn').style.display = "none"; refreshDropdowns(); }
+    function manualOpeningChange() { const k = getPeriodKey(); if(!k) return; cumOpenings[k] = { bank: toEn(document.getElementById('pb').value), cash: toEn(document.getElementById('pc').value), isManual: true }; saveAll(); updateUI(); }
+    function resetOpeningToAuto() { const k = getPeriodKey(); if(k && cumOpenings[k]) { cumOpenings[k].isManual = false; autoCalcOpeningExpense(); updateUI(); } }
+    function saveHeader() { localStorage.setItem(K.SETTINGS+'_off', document.getElementById('offName').innerText); }
+
+    function confirmClearAll() {
+        showModal("সব মুছুন", "আপনি কি নিশ্চিতভাবে বর্তমান লেজারের সকল এন্ট্রি মুছে ফেলতে চান? এটি শুধুমাত্র এন্ট্রিগুলো মুছবে, আর্কাইভ বা সেটিংস মুছবে না।", () => {
+            pushToSafetyStack();
+            entries = [];
+            saveAll();
+            updateUI();
+            showToast("সকল এন্ট্রি মুছে ফেলা হয়েছে!", "success");
+        });
     }
 
-    function cancelEdit() { document.getElementById('ledgerForm').reset(); document.getElementById('editId').value = ""; document.getElementById('submitBtn').innerText = "এন্ট্রি করুন"; document.getElementById('cancelBtn').style.display = "none"; toggleInputs(); refreshDropdowns(); }
+    window.onload = async () => {
+        const apiKey = deobfuscate(localStorage.getItem(K.SECURE_API));
+        if (apiKey) { await gapi.load('client', async () => { await gapi.client.init({ apiKey, discoveryDocs: [DISCOVERY_DOC] }); checkCloudStatus(); }); }
+        tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: (resp) => { if (resp.access_token) { sessionStorage.setItem('gdrive_tk', resp.access_token); sessionStorage.setItem('gdrive_tk_exp', Date.now() + 3500000); checkCloudStatus(); syncWithCloud(); } } });
+        renderMonthDropdown();
+        const yrF = document.getElementById('filterYear'), cY = new Date().getFullYear();
+        for (let i = cY - 2; i <= cY + 2; i++) { let o = document.createElement('option'); o.value = i; o.innerText = i; if (i === cY) o.selected = true; yrF.appendChild(o); }
+        if(localStorage.getItem(K.SETTINGS+'_off')) document.getElementById('offName').innerText = localStorage.getItem(K.SETTINGS+'_off');
+        autoGenDateRange(); refreshDropdowns(); autoCalcOpeningExpense(); updateUI();
+        setTimeout(() => handleAuth(true), 1500);
+    };
 
-    document.getElementById('ledgerForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const dateInput = document.getElementById('date').value.split('-');
-        const m = parseInt(dateInput[1]), d = parseInt(dateInput[2]);
-        const selM = Array.from(document.querySelectorAll('.month-check:checked')).map(cb => parseInt(cb.value));
-        const selP = document.getElementById('filterPeriod').value;
-        if (!selM.includes(m)) { alert("এই তারিখটি নির্বাচিত মাসের মধ্যে নেই!"); return; }
-        if(selP === "P1" && d > 15) { alert("সতর্কতা: ১-১৫ তারিখের অংশে ১৬ তারিখ বা তার পরের তারিখ গ্রহণযোগ্য নয়।"); return; }
-        if(selP === "P2" && d < 16) { alert("সতর্কতা: ১৬-শেষ তারিখের অংশে ১৫ তারিখ বা তার আগের তারিখ গ্রহণযোগ্য নয়।"); return; }
-        const editId = document.getElementById('editId').value;
-        const entryData = { id: editId ? parseInt(editId) : Date.now(), date: document.getElementById('date').value, type: document.getElementById('type').value, desc: document.getElementById('desc').value, cat: document.getElementById('catSelect').value, vou: document.getElementById('vou').value || '-', chk: document.getElementById('chk').value || '-', mode: document.getElementById('mode').value, amt: toEn(document.getElementById('amtInp').value) };
-        if (editId) entries = entries.map(ent => ent.id === parseInt(editId) ? entryData : ent);
-        else entries.push(entryData);
-        localStorage.setItem('jbc_db_v46', JSON.stringify(entries));
-        cancelEdit(); refreshUI();
-    });
+    window.onbeforeprint = function() {
+        const head = document.getElementById('tHead');
+        const offName = document.getElementById('offName').innerText;
+        const dateRange = document.getElementById('dateRangeDisplay').innerText;
+        const colCount = head.rows[1].cells.length - 1;
 
-    function refreshUI() { refreshDropdowns(); updateUI(); }
+        document.body.classList.remove('print-v-sm', 'print-sm', 'print-md');
+        if (colCount > 25) document.body.classList.add('print-v-sm');
+        else if (colCount > 18) document.body.classList.add('print-sm');
+        else if (colCount > 12) document.body.classList.add('print-md');
 
-    window.onload = () => {
-        gapiLoaded(); gisLoaded(); renderMonthDropdown();
-        const yrF = document.getElementById('filterYear'); const cY = new Date().getFullYear();
-        for (let i = cY - 1; i <= cY + 2; i++) { let o = document.createElement('option'); o.value = i; o.innerText = i; if (i === cY) o.selected = true; yrF.appendChild(o); }
-        if(localStorage.getItem('jbc_off_v46')) document.getElementById('offName').innerText = localStorage.getItem('jbc_off_v46');
-        if(localStorage.getItem('jbc_ran_v46')) document.getElementById('dateRange').innerText = localStorage.getItem('jbc_ran_v46');
-        autoCalcPrevExpenses(); refreshUI();
+        if (!document.getElementById('repeatRow')) {
+            const row = document.createElement('tr');
+            row.id = 'repeatRow';
+            row.className = 'print-header-repeat';
+            row.innerHTML = `<th colspan="${colCount}">
+                <h1>জীবন বীমা কর্পোরেশন</h1>
+                <h3>${offName}</h3>
+                <p><b>${dateRange}</b></p>
+            </th>`;
+            head.insertBefore(row, head.firstChild);
+        }
+    };
+
+    window.onafterprint = function() {
+        const row = document.getElementById('repeatRow');
+        if (row) row.remove();
+        document.body.classList.remove('print-v-sm', 'print-sm', 'print-md');
     };
 </script>
 </body>
