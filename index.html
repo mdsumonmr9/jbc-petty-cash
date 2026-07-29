@@ -496,7 +496,16 @@
                 s.pb += p.amt; activeCats.forEach(() => row += `<td class="breakdown-head"></td>`);
                 row += `<td class="no-print">${isLocked?'🔒':`<span style="color:blue;cursor:pointer" onclick="editEntry(${p.id})">✎</span> <span style="color:red;cursor:pointer" onclick="delEntry('${p.id}')">×</span>`}</td>`; pI++;
             } else {
-                if (r) { row += `<td class="receipt-head">${formatDateToBn(r.date)}</td><td class="receipt-head">${r.desc}</td><td class="amt receipt-head">${r.ab>0?toBn(r.ab):''}</td><td class="amt receipt-head">${r.ac>0?toBn(r.ac):''}</td>`; s.rb += r.ab; s.rc += r.ac; rI++; } else row += `<td></td><td></td><td></td><td></td>`;
+                if (r) { 
+                    row += `<td class="receipt-head">${formatDateToBn(r.date)}</td><td class="receipt-head">${r.desc}</td><td class="amt receipt-head">${r.ab>0?toBn(r.ab):''}</td><td class="amt receipt-head">${r.ac>0?toBn(r.ac):''}</td>`; 
+                    
+                    // সংশোধিত লজিক: পুরো মাস বা একাধিক মাস ভিউতে মাঝখানের "জের বি/এফ" (যেমন ১৬ তারিখের) প্রাপ্তির যোগফলের সময় বাদ যাবে
+                    const isInternalJer = (selP === 'FULL' || selM.length > 1) && r.desc === "জের বি/এফ" && r.date.split('-')[2] !== '01';
+                    if (!isInternalJer) {
+                        s.rb += r.ab; s.rc += r.ac; 
+                    }
+                    rI++; 
+                } else row += `<td></td><td></td><td></td><td></td>`;
                 if (p && !p.isPetty) {
                     row += `<td class="payment-head">${formatDateToBn(p.date)}</td><td class="payment-head">${p.desc}</td><td class="payment-head">${p.vou}</td><td class="payment-head">${p.chk}</td><td class="amt payment-head">${p.bT>0?toBn(p.bT):''}</td><td class="amt payment-head">${p.cT>0?toBn(p.cT):''}</td>`;
                     s.pb += p.bT; s.pc += p.cT; activeCats.forEach((c, idx) => { let val = p.breakdown[c] || 0; row += `<td class="breakdown-head">${val>0?toBn(val):''}</td>`; cs[idx] += val; });
