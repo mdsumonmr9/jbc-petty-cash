@@ -508,20 +508,29 @@
         document.getElementById('tBody').innerHTML = bHtml;
         document.getElementById('tFoot').innerHTML = `<tr style="background:#f1f5f9"><td></td><td>মোট:</td><td class="amt">${toBn(s.rb)}</td><td class="amt">${toBn(s.rc)}</td><td></td><td>মোট:</td><td></td><td></td><td class="amt">${toBn(s.pb)}</td><td class="amt">${toBn(s.pc)}</td>${cs.map(v => `<td class="amt">${v>0?toBn(v):''}</td>`).join('')}<td class="no-print"></td></tr>`;
         
-        // FOOTER UPDATE SECTION
         document.getElementById('sumRB').innerText = toBn(s.rb); document.getElementById('sumRC').innerText = toBn(s.rc);
         document.getElementById('sumPB').innerText = toBn(s.pb); document.getElementById('sumPC').innerText = toBn(s.pc);
         document.getElementById('jerB').innerText = toBn(s.rb - s.pb); document.getElementById('jerC').innerText = toBn(s.rc - s.pc);
-        
-        // যোগফল প্রদর্শনের জন্য এই দুটি লাইন গুরুত্বপূর্ণ:
         document.getElementById('pCash').innerText = toBn(s.pc);
         document.getElementById('pBank').innerText = toBn(s.pb);
         
         const pbVal = toEn(document.getElementById('pb').value), pcVal = toEn(document.getElementById('pc').value);
         document.getElementById('cumBText').innerText = `${toBn(pbVal)} + ${toBn(s.pb)} = ${toBn(pbVal + s.pb)}`;
         document.getElementById('cumCText').innerText = `${toBn(pcVal)} + ${toBn(s.pc)} = ${toBn(pcVal + s.pc)}`;
-        let gB = 0, gC = 0; entries.forEach(e => { if(e.type==='receipt') (e.mode==='bank')?gB+=e.amt:gC+=e.amt; else { if(e.cat==='পেটিক্যাশ উত্তোলন') { gB-=e.amt; gC+=e.amt; } else (e.mode==='bank')?gB-=e.amt:gC-=e.amt; } });
-        document.getElementById('dashBank').innerText = toBn(gB); document.getElementById('dashCash').innerText = toBn(gC);
+
+        // FIXED DASHBOARD LOGIC: SKIP "জের বি/এফ" TO PREVENT DOUBLE COUNTING
+        let gB = 0, gC = 0; 
+        entries.forEach(e => { 
+            if(e.desc === "জের বি/এফ") return;
+            if(e.type==='receipt') (e.mode==='bank')?gB+=e.amt:gC+=e.amt; 
+            else { 
+                if(e.cat==='পেটিক্যাশ উত্তোলন') { gB-=e.amt; gC+=e.amt; } 
+                else (e.mode==='bank')?gB-=e.amt:gC-=e.amt; 
+            } 
+        });
+        document.getElementById('dashBank').innerText = toBn(gB); 
+        document.getElementById('dashCash').innerText = toBn(gC);
+        
         reconcile(s.pc, tPetty, s.pb, cs.reduce((a,c)=>a+c, 0));
     }
 
