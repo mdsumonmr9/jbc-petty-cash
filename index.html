@@ -613,8 +613,30 @@
         const selY = parseInt(document.getElementById('filterYear').value), selP = document.getElementById('filterPeriod').value;
         if (selM.length !== 1 || yI !== selY || mI !== selM[0] || (selP === 'P1' && dI > 15) || (selP === 'P2' && dI < 16)) { showToast("তারিখ পিরিয়ডের বাইরে!", "err"); return; }
         const data = { id: document.getElementById('editId').value ? parseInt(document.getElementById('editId').value) : Date.now(), date: dt, type: document.getElementById('type').value, desc: document.getElementById('desc').value, cat: document.getElementById('catSelect').value, vou: document.getElementById('vou').value || '-', chk: document.getElementById('chk').value || '-', mode: document.getElementById('mode').value, amt: toEn(document.getElementById('amtInp').value) };
-        if (document.getElementById('editId').value) entries = entries.map(x => x.id === data.id ? data : x); else entries.push(data);
-        saveNewDesc(data.desc); sortEntries(); saveAll(); cancelEdit(); updateUI();
+        
+        // AUTO RE-SORT LOGIC AFTER EDIT (VOUCHER NUMBER WISE)
+        if (document.getElementById('editId').value) {
+            entries = entries.map(x => x.id === data.id ? data : x);
+            // SORTING RULES: Date (Asc), Voucher Numeric (Asc), ID (Asc)
+            entries.sort((a, b) => {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                if (a.type === 'payment' && b.type === 'payment') {
+                    const getVNum = (v) => {
+                        if (!v || v === '-') return 9999999;
+                        let n = String(v).replace(/[০-৯]/g, d => bnNums.indexOf(d)).match(/\d+/);
+                        return n ? parseInt(n[0]) : 9999999;
+                    };
+                    let vA = getVNum(a.vou), vB = getVNum(b.vou);
+                    if (vA !== vB) return vA - vB;
+                }
+                return a.id - b.id;
+            });
+        } else {
+            entries.push(data);
+            sortEntries(); // Regular sort for new entries (Original Behavior)
+        }
+        
+        saveNewDesc(data.desc); saveAll(); cancelEdit(); updateUI();
     });
 
     function renameCat(i) {
