@@ -645,7 +645,22 @@
     function closeHistory() { document.getElementById('historyModal').style.display = 'none'; }
     function restoreHistoryMerge(i) { pushToSafetyStack(); applySystemBundle(historyData[i], true, historyData[i].key); closeHistory(); }
     function handleRestore(ev) { const reader = new FileReader(); reader.onload = (e) => { try { pushToSafetyStack(); if(applySystemBundle(JSON.parse(e.target.result))) showToast("সফল!", "success"); } catch(err) {} }; reader.readAsText(ev.target.files[0]); }
-    function createLocalBackup() { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(createSystemBundle())], {type: 'application/json'})); a.download = `JBC_Backup_${Date.now()}.json`; a.click(); }
+    
+    function createLocalBackup() {
+        const now = new Date();
+        const Y = now.getFullYear();
+        const M = String(now.getMonth() + 1).padStart(2, '0');
+        const D = String(now.getDate()).padStart(2, '0');
+        const H = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        const sec = String(now.getSeconds()).padStart(2, '0');
+        const fileName = `JBC_Backup_${Y}-${M}-${D}_${H}-${min}-${sec}.json`;
+
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(createSystemBundle())], {type: 'application/json'}));
+        a.download = fileName;
+        a.click();
+    }
 
     function exportToExcelAdvanced() {
         const offName = document.getElementById('offName').innerText;
@@ -670,7 +685,7 @@
         const footerHtml = document.getElementById('footerSnapshot').innerHTML;
         const colCount = tableClone.querySelector('thead').rows[1].cells.length;
         let fontSize = colCount > 25 ? "7pt" : (colCount > 18 ? "8.5pt" : "9.5pt");
-        const content = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>@page Section1 { size: 14.0in 8.5in; mso-page-orientation: landscape; margin: 0.4in; } div.Section1 { page: Section1; } table { border-collapse: collapse; width: 100%; font-size: ${fontSize}; } th, td { border: 1px solid black; padding: 3px; text-align: center; font-weight: bold; } .amt { text-align: right; } .receipt-head { background-color: #fcc100 !important; } .payment-head { background-color: #f19597 !important; } .breakdown-head { background-color: #a0c4df !important; } h1, h3, p { text-align: center; margin: 3px; }</style></head><body><div class="Section1"><h1>জীবন বীমা কর্পোরেশন</h1><h3>${offName}</h3><p><b>${dateRange}</b></p>${tableClone.outerHTML}<div style="margin-top:20px;">${footerHtml}</div></div></body></html>`;
+        const content = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>@page Section1 { size: 14.0in 8.5in; mso-page-orientation: landscape; margin: 0.4in; } div.Section1 { page: Section1; } table { border-collapse: collapse; width: 100%; font-size: ${fontSize}; background-color: #ffffff; } th, td { border: 1px solid black; padding: 3px; text-align: center; font-weight: bold; background-color: #ffffff; } thead tr:first-child .receipt-head { background-color: #fcc100 !important; } thead tr:first-child .payment-head { background-color: #f19597 !important; } thead tr:first-child .breakdown-head { background-color: #a0c4df !important; } h1, h3, p { text-align: center; margin: 3px; }</style></head><body><div class="Section1"><h1>জীবন বীমা কর্পোরেশন</h1><h3>${offName}</h3><p><b>${dateRange}</b></p>${tableClone.outerHTML}<div style="margin-top:20px;">${footerHtml}</div></div></body></html>`;
         const blob = new Blob(['\ufeff', content], { type: 'application/msword' });
         const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `JBC_Report_${offName}.doc`; link.click();
     }
